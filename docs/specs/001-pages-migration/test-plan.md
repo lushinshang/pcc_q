@@ -12,7 +12,7 @@
 ## 測試層級
 
 - Unit：日期、金額、文字、URL、hash、資料新鮮度、日期範圍篩選（`dateRange.ts`）。
-- Parser fixture：正常、缺欄、欄位漂移、零列、惡意 scheme、script、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-009）。
+- Parser fixture：正常、缺欄、欄位漂移、結構漂移零列、PCC 確認零筆標記、惡意 scheme、script、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-009）。
 - Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、分頁次數安全上限、cookie 串接（PAG-T-001～006）。
 - Rolling window：30 天剪枝、合併去重、同日新增筆數驟降偵測（BASE-T-007／008）。
 - Contract：dataset 欄位、count、hash、`org` 列舉值與消費端驗證。

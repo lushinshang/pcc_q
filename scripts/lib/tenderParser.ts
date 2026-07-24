@@ -86,8 +86,15 @@ function parseRow($: cheerio.CheerioAPI, row: Element): Tender | null {
 export function parseTenderHtml(html: string): ParseTenderResult {
   const $ = cheerio.load(html);
   const rows = $("tr[class*='tb_b']");
-  if (rows.length === 0)
+  if (rows.length === 0) {
+    // PCC 對零筆結果會明確顯示「無符合條件資料」，而不是省略表格；
+    // 有這個標記時視為確認零筆（合法情況，例如剛跨日還沒有新公告），
+    // 不是上游結構漂移，讓呼叫端可以安全地只合併前一版資料。
+    if (html.includes("無符合條件資料")) {
+      return { tenders: [], scannedRows: 0, rejectedRows: [] };
+    }
     throw new Error("找不到標案資料列，可能為上游結構漂移");
+  }
   if (rows.length > MAX_TENDER_ROWS_PER_PAGE) {
     throw new Error(
       `單頁標案資料列超過 ${String(MAX_TENDER_ROWS_PER_PAGE)} 筆上限`,

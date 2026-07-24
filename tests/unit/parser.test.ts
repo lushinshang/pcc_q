@@ -47,6 +47,15 @@ describe("REQ-D-004 PCC parser fixtures", () => {
     }
   });
 
+  it("PAR-T-003b accepts PCC's real confirmed-zero-result marker without throwing", async () => {
+    const html = await readFile(
+      "tests/fixtures/pcc-confirmed-zero.html",
+      "utf8",
+    );
+    const result = parseTenderHtml(html);
+    expect(result).toEqual({ tenders: [], scannedRows: 0, rejectedRows: [] });
+  });
+
   it("PAR-T-004 supports the known script-name fallback while still sanitizing output", () => {
     const result = parseTenderHtml(
       row(

@@ -38,13 +38,11 @@ describe("PIPE-T parser publication quality", () => {
     }).not.toThrow();
   });
 
-  it("PIPE-T-002 rejects zero scanned or zero valid rows", () => {
+  it("PIPE-T-002 accepts a confirmed-zero result without treating it as an error", () => {
+    // 滾動累積架構下零筆新資料會與前一版合併，不再是危險狀態。
     expect(() => {
       assertParseQuality(result(0, 0, 0));
-    }).toThrow(/零筆/);
-    expect(() => {
-      assertParseQuality(result(1, 0, 1));
-    }).toThrow(/零筆/);
+    }).not.toThrow();
   });
 
   it("PIPE-T-003 rejects excessive rejection ratios and invalid thresholds", () => {
