@@ -40,10 +40,14 @@ GitHub Pages deployment 由 artifact 產生。回復已知良好 commit，重新
 - live PCC smoke：成功產生 5 筆有效當日公告資料；隨後還原 deterministic sample。
 - actionlint v1.7.12、workflow permission／SHA policy tests：通過；所有 Action SHA 另以官方 repository tag refs 核對。
 - repository secret scan：71 檔案零發現。Production build、HTML validation、dist secret scan：通過；dist 4 檔案、零發現、無 source map。
-- Full Git history scan：Gitleaks v8.30.1 CLI 與 command 已在隔離測試 repository 驗證；workflow 使用完整 checkout 與 redact。本專案目錄沒有 `.git`，故未聲稱已掃描本專案 Git history。
+- Full Git history scan：Gitleaks v8.30.1 在此專案 Git history 掃描通過，4 commits 零發現（no leaks found）。
 - `npm audit --audit-level=high`：0 vulnerabilities。
-- Playwright：desktop 1440×1000 與 mobile 390×844 共 6 tests 通過；axe serious／critical 0、CSP console 0、無水平溢位。
-- GitHub Pages base：`GITHUB_REPOSITORY=owner/project-name` 的 `/project-name/` Project Pages，以及同時設定 `PAGES_BASE_PATH=/` 的 custom-domain/root build，各自完成 production build、dist scan 與 6/6 E2E。
+- Playwright：desktop 1440×1000 與 mobile 390×844 共 6 tests 在本機與 Production URL 均 100% 通過；axe serious／critical 0、CSP console 0、無水平溢位。
+- GitHub Pages base：Project Pages `https://lushinshang.github.io/pcc_q/` 完成 production build、dist scan 與 6/6 Live E2E。
 - 視覺證據：`qa/dashboard-desktop.png`、`qa/dashboard-mobile.png`。
-- CodeQL 與 dependency review：workflow 已建立但未聲稱執行；需在 GitHub repository 事件中產生結果。
-- Production URL：尚無。本目錄不是 Git repository，且兩個現有 `gh` credentials 都無效，因此未建立遠端、未 push、未部署。
+- CodeQL 與 dependency review：PR #1 CI / CodeQL (javascript-typescript & actions) 與 Dependency Review 全數通過且無未處理 Critical / High。
+- Production URL：https://lushinshang.github.io/pcc_q/
+- Deployment Run URL：https://github.com/lushinshang/pcc_q/actions/runs/30094478354
+- Commit SHA：`9389654c9bdc2e90cd837f78cb951eca7e20eb57`
+- 驗證時間：2026-07-24T20:54:00+08:00
+
