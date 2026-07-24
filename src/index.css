@@ -50,6 +50,7 @@ a {
   max-width: 1240px;
   margin: 0 auto;
   padding: 28px;
+  min-width: 0;
 }
 .hero {
   display: flex;
@@ -284,12 +285,14 @@ main {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  min-width: 0;
 }
 .chart-card {
   padding: 26px;
   border: 1px solid #e7dfe1;
   border-radius: 24px;
   background: #fff;
+  min-width: 0;
 }
 .progress-list {
   display: grid;
@@ -297,14 +300,21 @@ main {
   margin: 0;
   padding: 0;
   list-style: none;
+  min-width: 0;
+}
+.progress-list li {
+  min-width: 0;
 }
 .progress-list li > div {
   display: flex;
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 7px;
+  min-width: 0;
+  width: 100%;
 }
 .progress-list span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -372,6 +382,7 @@ progress.accent-green::-moz-progress-bar {
   grid-template-columns: 1fr 300px;
   gap: 16px;
   margin-bottom: 20px;
+  min-width: 0;
 }
 .filters label {
   display: grid;
@@ -379,10 +390,12 @@ progress.accent-green::-moz-progress-bar {
   color: #625654;
   font-size: 0.78rem;
   font-weight: 800;
+  min-width: 0;
 }
 .input-wrap {
   position: relative;
   display: block;
+  min-width: 0;
 }
 .input-wrap svg {
   position: absolute;
@@ -395,12 +408,15 @@ progress.accent-green::-moz-progress-bar {
 .filters input,
 .filters select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 48px;
   padding: 10px 16px;
   color: #463f3d;
   border: 2px solid #eadfe1;
   border-radius: 14px;
   background: #fff;
+  text-overflow: ellipsis;
 }
 .filters input {
   padding-left: 44px;
@@ -549,17 +565,31 @@ footer svg {
     border: 1px solid #eadfe1;
     border-radius: 18px;
     background: #fff;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .card-meta {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 12px;
+    gap: 6px 12px;
     margin-bottom: 13px;
     color: #7a4d57;
     font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .card-meta strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .mobile-cards .tender-link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
     margin-bottom: 16px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .mobile-cards dl {
     display: grid;
@@ -570,8 +600,9 @@ footer svg {
   }
   .mobile-cards dl div {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 14px;
+    gap: 4px 14px;
   }
   .mobile-cards dt {
     color: #695d5b;
@@ -580,5 +611,7 @@ footer svg {
     margin: 0;
     text-align: right;
     font-weight: 800;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
