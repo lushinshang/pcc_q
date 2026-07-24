@@ -83,9 +83,9 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 ### 3. Production 部署與 Live 驗收數據
 
 - **Production URL**：[https://lushinshang.github.io/pcc_q/](https://lushinshang.github.io/pcc_q/)
-- **Deployment Run URL**：[https://github.com/lushinshang/pcc_q/actions/runs/30094478354](https://github.com/lushinshang/pcc_q/actions/runs/30094478354)
-- **最新成功部署 Commit SHA**：`9389654c9bdc2e90cd837f78cb951eca7e20eb57`（此為 Deployment Run URL 對應的 commit；main HEAD 可能領先於此，請以 `gh api repos/lushinshang/pcc_q/deployments` 查詢的最新 deployment 為準）
-- **最後驗收時間**：2026-07-24 20:54 (Asia/Taipei)
+- **Deployment Run URL**：[https://github.com/lushinshang/pcc_q/actions/runs/30103033703](https://github.com/lushinshang/pcc_q/actions/runs/30103033703)
+- **最新成功部署 Commit SHA**：`14e7bcb33980809958c8cc71eef153aa932ad285`（此為 Deployment Run URL 對應的 commit；main HEAD 可能領先於此，請以 `gh api repos/lushinshang/pcc_q/deployments` 查詢的最新 deployment 為準）
+- **最後驗收時間**：2026-07-24 23:00 (Asia/Taipei)
 
 #### 13 項 Live Production 實體驗收對照表
 
