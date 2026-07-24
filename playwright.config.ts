@@ -14,7 +14,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || previewUrl,
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL ?? previewUrl,
     trace: "on-first-retry",
   },
   projects: [
