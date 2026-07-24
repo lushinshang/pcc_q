@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": "https://web.pcc.gov.tw/",
+  "queryMode": "isNow",
+  "fetchedAt": "2026-07-24T08:17:00+08:00",
+  "recordCount": 2,
+  "sha256": "5144c79b374ce1c7d2bfc30859441a781646127596044c16f252bc7420d9a3bf",
+  "tenders": [
+    {
+      "id": "115HJ08530081300520",
+      "name": "內湖院區醫療大樓整修工程",
+      "method": "公開招標",
+      "budget": 21389616,
+      "announcedDate": "2026-07-24",
+      "deadlineDate": "2026-08-07",
+      "link": "https://web.pcc.gov.tw/prkms/urlSelector/common/tpam?pk=ONE"
+    },
+    {
+      "id": "EN15004L135",
+      "name": "航電系統測試檯委商維護",
+      "method": "限制性招標",
+      "budget": 1200000,
+      "announcedDate": "2026-07-24",
+      "deadlineDate": "2026-08-01",
+      "link": "https://web.pcc.gov.tw/prkms/urlSelector/common/tpam?pk=TWO"
+    }
+  ]
+}

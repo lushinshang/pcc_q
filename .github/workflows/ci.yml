@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality and security gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PAGES_BASE_PATH: ${{ vars.PAGES_BASE_PATH }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Set up Go for pinned actionlint
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.26"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Formatting
+        run: npm run format
+      - name: Lint
+        run: npm run lint
+      - name: Strict typecheck
+        run: npm run typecheck
+      - name: Unit, parser, contract, and component coverage
+        run: npm run test:coverage
+      - name: Workflow policy checks
+        run: npm run security:workflows
+      - name: Workflow syntax and expression lint
+        run: npm run workflow:lint
+      - name: Repository secret scan
+        run: npm run security:repo
+      - name: Full Git history secret scan
+        run: npm run security:history
+      - name: Production build
+        run: npm run build
+      - name: HTML validation
+        run: npm run validate:html
+      - name: Bundle and artifact secret scan
+        run: npm run security:dist
+      - name: Desktop, mobile, CSP, and accessibility E2E
+        run: npm run test:e2e
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Reject vulnerable dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: high
