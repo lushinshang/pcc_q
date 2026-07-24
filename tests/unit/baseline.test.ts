@@ -90,6 +90,36 @@ describe("REQ-D-003/004 previous deployment baseline", () => {
     );
   });
 
+  it("BASE-T-005b treats a previous deployment on an older schema version as no usable baseline", async () => {
+    const legacyDataset = {
+      schemaVersion: "1.0.0",
+      source: "https://web.pcc.gov.tw/",
+      queryMode: "isNow",
+      fetchedAt: "2026-07-24T10:00:00+08:00",
+      recordCount: 1,
+      sha256: "0".repeat(64),
+      tenders: [
+        {
+          id: "OLD",
+          name: "舊 schema 標案",
+          method: "公開招標",
+          budget: 1,
+          announcedDate: "2026-07-24",
+          deadlineDate: "2026-08-01",
+          link: "https://web.pcc.gov.tw/prkms/old",
+        },
+      ],
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify(legacyDataset), {
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(
+      loadPreviousPagesDataset("owner/project", fetchImpl),
+    ).resolves.toBeNull();
+  });
+
   it("BASE-T-005 handles first deployment and rejects invalid prior responses", async () => {
     await expect(loadPreviousPagesDataset(undefined)).resolves.toBeNull();
     for (const status of [302, 404]) {
