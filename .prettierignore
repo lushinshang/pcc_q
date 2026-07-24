@@ -1,0 +1,9 @@
+dist
+coverage
+playwright-report
+test-results
+proposal/*.html
+proposal/*.png
+proposal/
+tests/fixtures/
+package-lock.json

@@ -1,0 +1,1721 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="AI Studio
+匯出的國防部標案儀表板，改造為 GitHub Actions 定時產生資料、GitHub Pages
+發布的安全靜態網站。">
+  <title>GitHub Pages 靜態化遷移｜SDD × TDD × 資安驗證修改提案</title>
+    <style>
+      :root {
+        --bg: #f4f7f8;
+        --paper: #ffffff;
+        --ink: #17252b;
+        --muted: #5d7078;
+        --line: #dbe5e8;
+        --brand: #0f766e;
+        --brand-deep: #115e59;
+        --brand-soft: #dff4f1;
+        --blue: #2563eb;
+        --blue-soft: #eaf1ff;
+        --green: #15803d;
+        --green-soft: #e9f8ee;
+        --amber: #a16207;
+        --amber-soft: #fff6d8;
+        --red: #b42318;
+        --red-soft: #fff0ee;
+        --shadow: 0 18px 50px rgba(33, 58, 67, 0.10);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        background: var(--bg);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 10% -10%, rgba(15, 118, 110, 0.12), transparent 31rem),
+          radial-gradient(circle at 92% 4%, rgba(37, 99, 235, 0.09), transparent 28rem),
+          var(--bg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+          "PingFang TC", "Microsoft JhengHei", sans-serif;
+        font-size: 16px;
+        line-height: 1.68;
+        letter-spacing: 0;
+      }
+
+      body > header,
+      body > nav,
+      body > main,
+      body > footer {
+        width: min(1120px, calc(100% - 40px));
+        margin-inline: auto;
+      }
+
+      body > header {
+        position: relative;
+        overflow: hidden;
+        margin-top: 32px;
+        padding: 54px 58px 50px;
+        color: #fff;
+        border-radius: 28px;
+        background:
+          linear-gradient(125deg, rgba(10, 75, 71, 0.98), rgba(15, 118, 110, 0.93) 58%, rgba(37, 99, 235, 0.88));
+        box-shadow: var(--shadow);
+      }
+
+      body > header::after {
+        content: "";
+        position: absolute;
+        right: -85px;
+        bottom: -115px;
+        width: 330px;
+        height: 330px;
+        border: 44px solid rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+      }
+
+      body > header h1 {
+        position: relative;
+        z-index: 1;
+        max-width: 780px;
+        margin: 0;
+        color: #fff;
+        font-size: clamp(2.35rem, 5vw, 3.55rem);
+        line-height: 1.13;
+        text-wrap: balance;
+      }
+
+      body > header .subtitle {
+        position: relative;
+        z-index: 1;
+        margin: 14px 0 0;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: clamp(1.05rem, 2.1vw, 1.42rem);
+        font-weight: 650;
+      }
+
+      body > header .author,
+      body > header .date {
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        margin: 28px 14px 0 0;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 0.9rem;
+      }
+
+      #TOC {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        width: 100%;
+        max-width: none;
+        margin-top: 26px;
+        padding: 0 max(20px, calc((100vw - 1120px) / 2));
+        overflow-x: auto;
+        border-block: 1px solid rgba(219, 229, 232, 0.95);
+        background: rgba(244, 247, 248, 0.91);
+        backdrop-filter: blur(16px);
+      }
+
+      #TOC > ul {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: max-content;
+        margin: 0;
+        padding: 9px 0;
+        list-style: none;
+      }
+
+      #TOC > ul > li > a {
+        display: block;
+        padding: 8px 12px;
+        color: var(--muted);
+        border-radius: 999px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      #TOC > ul > li > a:hover,
+      #TOC > ul > li > a:focus-visible {
+        color: var(--brand-deep);
+        background: var(--brand-soft);
+        outline: none;
+      }
+
+      #TOC ul ul {
+        display: none;
+      }
+
+      body > main {
+        margin-top: 34px;
+        margin-bottom: 70px;
+        padding: 58px min(7vw, 76px) 70px;
+        border: 1px solid rgba(219, 229, 232, 0.9);
+        border-radius: 28px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      main > section > :not(.status-grid, .architecture, table, pre, .executive-summary, .approval-box),
+      main > :not(section, .status-grid, .architecture, table, pre, .executive-summary, .approval-box) {
+        max-width: 780px;
+      }
+
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        line-height: 1.3;
+        text-wrap: balance;
+      }
+
+      h2 {
+        margin: 76px 0 24px;
+        padding-top: 4px;
+        font-size: clamp(1.55rem, 3vw, 2.05rem);
+      }
+
+      h2::before {
+        content: "";
+        display: block;
+        width: 50px;
+        height: 5px;
+        margin-bottom: 14px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--brand), var(--blue));
+      }
+
+      main > section:first-child h2:first-child,
+      .executive-summary h2 {
+        margin-top: 0;
+      }
+
+      h3 {
+        margin: 38px 0 14px;
+        font-size: 1.23rem;
+      }
+
+      h4 {
+        margin: 26px 0 10px;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin: 0 0 1em;
+        color: #31464e;
+      }
+
+      strong {
+        color: #17333a;
+      }
+
+      a {
+        color: var(--brand-deep);
+        text-decoration-color: rgba(15, 118, 110, 0.42);
+        text-underline-offset: 3px;
+      }
+
+      a:hover {
+        color: var(--blue);
+        text-decoration-color: currentColor;
+      }
+
+      ul,
+      ol {
+        margin-top: 0.75em;
+        padding-left: 1.45em;
+      }
+
+      li {
+        margin: 0.4em 0;
+        padding-left: 0.2em;
+      }
+
+      code {
+        padding: 0.12em 0.38em;
+        color: #075985;
+        border: 1px solid #d7e9f3;
+        border-radius: 6px;
+        background: #f1f8fc;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.88em;
+      }
+
+      pre {
+        overflow-x: auto;
+        margin: 24px 0;
+        padding: 22px 24px;
+        color: #d8f3ee;
+        border: 1px solid #214b50;
+        border-radius: 16px;
+        background: #112d32;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      pre code {
+        padding: 0;
+        color: inherit;
+        border: 0;
+        background: transparent;
+        font-size: 0.85rem;
+        line-height: 1.62;
+      }
+
+      .executive-summary {
+        max-width: none;
+        margin: 0 0 26px;
+        padding: 28px 30px 24px;
+        border: 1px solid #b7ded8;
+        border-left: 6px solid var(--brand);
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f1fbf9, #f7fbff);
+      }
+
+      .executive-summary h2 {
+        font-size: 1.5rem;
+      }
+
+      .executive-summary h2::before {
+        display: none;
+      }
+
+      .executive-summary p:last-child {
+        margin-bottom: 0;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        max-width: none;
+        margin: 26px 0 36px;
+      }
+
+      .status-card {
+        min-height: 132px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fbfcfd;
+      }
+
+      .status-card.good {
+        border-color: #b9dec6;
+        background: var(--green-soft);
+      }
+
+      .status-card h3 {
+        margin: 0 0 13px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .status-card p {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .architecture {
+        display: grid;
+        grid-template-columns: 1fr auto 1.25fr auto 1fr auto 1fr auto 1fr;
+        align-items: stretch;
+        gap: 9px;
+        max-width: none;
+        margin: 24px 0 30px;
+        padding: 22px;
+        border: 1px solid #dce8eb;
+        border-radius: 18px;
+        background: #f7fafb;
+      }
+
+      .arch-node {
+        display: flex;
+        min-height: 120px;
+        flex-direction: column;
+        justify-content: center;
+        padding: 16px;
+        text-align: center;
+        border: 1px solid #d5e0e3;
+        border-radius: 14px;
+        background: #fff;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .arch-node strong {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 0.94rem;
+      }
+
+      .arch-node.accent {
+        border-color: #9ed4cd;
+        background: var(--brand-soft);
+      }
+
+      .arch-node.success {
+        border-color: #b8ddc4;
+        background: var(--green-soft);
+      }
+
+      .arch-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--brand);
+        font-size: 1.3rem;
+        font-weight: 900;
+      }
+
+      table {
+        display: table;
+        width: 100%;
+        margin: 22px 0 32px;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      th {
+        padding: 13px 14px;
+        color: #17383e;
+        border-bottom: 1px solid #bfd4d8;
+        background: #eaf4f3;
+        font-weight: 800;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      td {
+        padding: 13px 14px;
+        color: #324950;
+        border-bottom: 1px solid #e4ebed;
+        vertical-align: top;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #fafcfc;
+      }
+
+      tbody tr:hover {
+        background: #f1f8f7;
+      }
+
+      td:first-child,
+      th:first-child {
+        font-weight: 750;
+      }
+
+      .approval-box {
+        max-width: none;
+        margin: 30px 0;
+        padding: 28px 30px;
+        color: #312403;
+        border: 1px solid #eed58b;
+        border-radius: 16px;
+        background: var(--amber-soft);
+      }
+
+      .approval-box h3 {
+        margin-top: 0;
+        color: #6d4700;
+      }
+
+      .approval-box p:last-child {
+        margin-bottom: 0;
+      }
+
+      input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.45rem;
+        accent-color: var(--brand);
+      }
+
+      hr {
+        height: 1px;
+        margin: 60px 0 28px;
+        border: 0;
+        background: var(--line);
+      }
+
+      body > footer {
+        margin-bottom: 40px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 900px) {
+        body > main {
+          padding-inline: 34px;
+        }
+
+        .status-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .architecture {
+          grid-template-columns: 1fr;
+        }
+
+        .arch-node {
+          min-height: 96px;
+        }
+
+        .arch-arrow {
+          transform: rotate(90deg);
+          min-height: 20px;
+        }
+
+        table {
+          display: block;
+          overflow-x: auto;
+          white-space: normal;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          font-size: 15.5px;
+          line-height: 1.66;
+        }
+
+        body > header,
+        body > main {
+          width: min(100% - 24px, 1120px);
+        }
+
+        body > header {
+          margin-top: 12px;
+          padding: 38px 24px 34px;
+          border-radius: 20px;
+        }
+
+        body > header h1 {
+          font-size: 2.25rem;
+        }
+
+        body > header .author,
+        body > header .date {
+          display: block;
+          margin-top: 18px;
+        }
+
+        body > header .date {
+          margin-top: 2px;
+        }
+
+        #TOC {
+          margin-top: 12px;
+          padding-inline: 12px;
+        }
+
+        #TOC > ul > li > a {
+          padding: 7px 10px;
+          font-size: 0.78rem;
+        }
+
+        body > main {
+          margin-top: 18px;
+          margin-bottom: 26px;
+          padding: 32px 20px 44px;
+          border-radius: 20px;
+        }
+
+        h2 {
+          margin-top: 58px;
+          font-size: 1.58rem;
+        }
+
+        h3 {
+          margin-top: 32px;
+        }
+
+        .executive-summary,
+        .approval-box {
+          padding: 22px 20px;
+        }
+
+        .status-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .status-card {
+          min-height: auto;
+        }
+
+        .architecture {
+          padding: 14px;
+        }
+
+        pre {
+          margin-inline: -6px;
+          padding: 18px;
+          border-radius: 12px;
+        }
+
+        table {
+          width: calc(100% + 12px);
+          margin-left: -6px;
+          font-size: 0.82rem;
+        }
+
+        th,
+        td {
+          min-width: 128px;
+          padding: 11px 12px;
+        }
+      }
+
+      @media print {
+        @page {
+          margin: 15mm;
+        }
+
+        body {
+          background: #fff;
+          font-size: 10.5pt;
+        }
+
+        body > header,
+        body > main {
+          width: 100%;
+          margin: 0;
+          border: 0;
+          box-shadow: none;
+        }
+
+        body > header {
+          border-radius: 0;
+          print-color-adjust: exact;
+        }
+
+        #TOC {
+          position: static;
+          display: none;
+        }
+
+        body > main {
+          padding: 18px 0;
+        }
+
+        h2,
+        h3 {
+          break-after: avoid;
+        }
+
+        table,
+        pre,
+        .status-grid,
+        .architecture,
+        .approval-box {
+          break-inside: avoid;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+<body>
+  <header id="title-block-header">
+    <h1>GitHub Pages 靜態化遷移</h1>
+        <p class="subtitle">SDD × TDD × 資安驗證修改提案</p>
+            <p class="author">SDD/TDD 專案技術提案</p>
+            <p class="date">2026-07-24</p>
+      </header>
+    <nav id="TOC" aria-label="提案章節">
+    <ul>
+    <li><a href="#決策摘要" id="toc-決策摘要">決策摘要</a></li>
+    <li><a href="#一背景與問題定義"
+    id="toc-一背景與問題定義">一、背景與問題定義</a></li>
+    <li><a href="#二目標非目標與成功定義"
+    id="toc-二目標非目標與成功定義">二、目標、非目標與成功定義</a></li>
+    <li><a href="#三目標架構" id="toc-三目標架構">三、目標架構</a></li>
+    <li><a href="#四規格驅動需求"
+    id="toc-四規格驅動需求">四、規格驅動需求</a></li>
+    <li><a href="#五資料契約" id="toc-五資料契約">五、資料契約</a></li>
+    <li><a href="#六威脅模型與安全設計"
+    id="toc-六威脅模型與安全設計">六、威脅模型與安全設計</a></li>
+    <li><a href="#七tdd-實作策略" id="toc-七tdd-實作策略">七、TDD
+    實作策略</a></li>
+    <li><a href="#八cicd-與發布閘門"
+    id="toc-八cicd-與發布閘門">八、CI/CD 與發布閘門</a></li>
+    <li><a href="#九執行階段與交付物"
+    id="toc-九執行階段與交付物">九、執行階段與交付物</a></li>
+    <li><a href="#十程式碼修改清單"
+    id="toc-十程式碼修改清單">十、程式碼修改清單</a></li>
+    <li><a href="#十一需求測試追溯矩陣"
+    id="toc-十一需求測試追溯矩陣">十一、需求—測試追溯矩陣</a></li>
+    <li><a href="#十二驗收與資安測試清單"
+    id="toc-十二驗收與資安測試清單">十二、驗收與資安測試清單</a></li>
+    <li><a href="#十三風險與因應"
+    id="toc-十三風險與因應">十三、風險與因應</a></li>
+    <li><a href="#十四核准事項"
+    id="toc-十四核准事項">十四、核准事項</a></li>
+    <li><a href="#十五參考基準"
+    id="toc-十五參考基準">十五、參考基準</a></li>
+    </ul>
+  </nav>
+    <main id="content">
+    <section id="決策摘要" class="level2 executive-summary">
+    <h2>決策摘要</h2>
+    <p><strong>建議有條件採行方案 A。</strong> 將目前的 React、Express
+    與即時 HTML 代理，改造成「GitHub Actions 定時擷取與驗證資料、Vite
+    建置、GitHub Pages 發布」的純靜態架構。這項改造會移除公開後端、任意
+    URL 代理與前端 API 金鑰，顯著縮小攻擊面。</p>
+    <p><strong>核准條件：</strong> 資安測試若要求網站自行回傳完整 HTTP
+    Security Headers，應採用「自訂網域＋可設定標頭的
+    CDN／反向代理」作為補償控制；純 GitHub Pages 無法由 repository
+    自訂所有 response headers。其餘應用程式、資料、供應鏈與 CI/CD
+    控制，均列為合併及發布前的強制閘門。</p>
+    </section>
+    <div class="status-grid">
+    <section id="建議結論" class="level3 status-card good">
+    <h3>建議結論</h3>
+    <p><strong>GO，附帶主機標頭條件</strong></p>
+    </section>
+    <section id="預估工期" class="level3 status-card">
+    <h3>預估工期</h3>
+    <p><strong>8–10 個工程人日</strong></p>
+    </section>
+    <section id="目標更新頻率" class="level3 status-card">
+    <h3>目標更新頻率</h3>
+    <p><strong>平日每小時＋手動觸發</strong></p>
+    </section>
+    <section id="主要基準" class="level3 status-card">
+    <h3>主要基準</h3>
+    <p><strong>OWASP ASVS 5.0.0 適用控制</strong></p>
+    </section>
+    </div>
+    <section id="一背景與問題定義" class="level2">
+    <h2>一、背景與問題定義</h2>
+    <p>目前專案是從 Google AI Studio 匯出的 React 19／Vite
+    應用程式，另以 Express 提供
+    <code>/api/tenders</code>，伺服器接收前端傳入的完整
+    URL，再抓取政府採購網 HTML 並以 Cheerio 解析。此結構無法直接在
+    GitHub Pages 執行，因為 GitHub Pages 僅提供靜態 HTML、CSS 與
+    JavaScript。</p>
+    <p>現況另有四項必須在遷移時一併修正的問題：</p>
+    <ol type="1">
+    <li><code>/api/tenders?url=...</code> 可要求伺服器存取任意網址，形成
+    SSRF 攻擊面。</li>
+    <li><code>GEMINI_API_KEY</code> 經 Vite 注入瀏覽器，且 Gemini SDK
+    實際未參與資料處理。</li>
+    <li>畫面宣稱「今日標案」，查詢卻使用
+    <code>dateType=isSpdt</code>，實際語意是「等標期內」。</li>
+    <li>預設搜尋詞「綜合任務」會將成功取得的資料全部過濾掉，使初始 KPI
+    與圖表顯示為零。</li>
+    </ol>
+    <section id="本提案中的-sdd-定義" class="level3">
+    <h3>1.1 本提案中的 SDD 定義</h3>
+    <p>本案同時滿足 SDD 的兩種常見解讀：</p>
+    <ul>
+    <li><strong>Specification-Driven Development：</strong>
+    先建立可驗證規格，再依規格設計、實作及驗收。</li>
+    <li><strong>Software Design Description：</strong>
+    將架構、資料契約、信任邊界、介面、錯誤處理與部署設計形成版本化文件。</li>
+    </ul>
+    <p>所有需求均須具備唯一編號，並可追溯到設計決策、測試案例與驗收證據。</p>
+    </section>
+    </section>
+    <section id="二目標非目標與成功定義" class="level2">
+    <h2>二、目標、非目標與成功定義</h2>
+    <section id="專案目標" class="level3">
+    <h3>2.1 專案目標</h3>
+    <ul>
+    <li>將網站改為 GitHub Pages 可發布的純靜態 Vite 應用程式。</li>
+    <li>由 GitHub Actions 在固定排程或人工觸發時抓取政府採購網。</li>
+    <li>在發布前完成來源限制、大小限制、逾時、資料清理及 JSON Schema
+    驗證。</li>
+    <li>移除 Gemini SDK、API 金鑰、Express 與公開 API endpoint。</li>
+    <li>以 SDD 建立需求、設計、威脅模型及需求—測試追溯矩陣。</li>
+    <li>以 TDD 建立解析器、資料契約、前端行為與安全負向測試。</li>
+    <li>讓每次 Pull Request 與正式發布都有可稽核的自動化證據。</li>
+    </ul>
+    </section>
+    <section id="非目標" class="level3">
+    <h3>2.2 非目標</h3>
+    <ul>
+    <li>不提供使用者登入、個人化、付款或機敏資料儲存。</li>
+    <li>不在瀏覽器直接抓取政府採購網。</li>
+    <li>不保證秒級即時；排程可能受 GitHub Actions 平台延遲影響。</li>
+    <li>不以固定「100%
+    信心」宣稱資料正確；只呈現可驗證的擷取與驗證結果。</li>
+    <li>本案不代表政府採購網或國防部官方服務，頁尾須保留資料來源與非官方聲明。</li>
+    </ul>
+    </section>
+    <section id="成功定義" class="level3">
+    <h3>2.3 成功定義</h3>
+    <p>專案只有在下列條件全部成立時，才能標記完成：</p>
+    <ul>
+    <li>初次載入顯示最近一次有效資料，不因預設搜尋詞而歸零。</li>
+    <li>「當日」需求使用
+    <code>dateType=isNow</code>；若產品決定採「等標期內」，所有文案同步修正。</li>
+    <li>GitHub Pages 網站不包含 API
+    金鑰、存取權杖或可執行的公開後端。</li>
+    <li>發布資料通過
+    schema、來源網址、資料型別、筆數與大小上限驗證。</li>
+    <li>單元測試 statement／line coverage ≥ 90%，branch coverage ≥
+    85%；解析核心 ≥ 95%。</li>
+    <li>CodeQL、secret scan 與 dependency audit 無未處理的
+    Critical／High 弱點。</li>
+    <li>E2E、可及性、CSP 與部署 smoke test 全數通過。</li>
+    <li>所有需求編號均至少對應一個自動化測試或人工驗收證據。</li>
+    </ul>
+    </section>
+    </section>
+    <section id="三目標架構" class="level2">
+    <h2>三、目標架構</h2>
+    <div class="architecture" aria-label="目標架構資料流">
+    <div class="arch-node">
+    <p><strong>政府採購網</strong></p>
+    <p>不受信任 HTML</p>
+    </div>
+    <div class="arch-arrow">
+    <p>→</p>
+    </div>
+    <div class="arch-node accent">
+    <p><strong>GitHub Actions</strong></p>
+    <p>固定來源擷取、解析、驗證</p>
+    </div>
+    <div class="arch-arrow">
+    <p>→</p>
+    </div>
+    <div class="arch-node">
+    <p><strong>tenders.json</strong></p>
+    <p>版本化資料契約</p>
+    </div>
+    <div class="arch-arrow">
+    <p>→</p>
+    </div>
+    <div class="arch-node accent">
+    <p><strong>Vite Build</strong></p>
+    <p>測試、掃描、產生 artifact</p>
+    </div>
+    <div class="arch-arrow">
+    <p>→</p>
+    </div>
+    <div class="arch-node success">
+    <p><strong>GitHub Pages</strong></p>
+    <p>同源靜態資產</p>
+    </div>
+    </div>
+    <section id="發布流程" class="level3">
+    <h3>3.1 發布流程</h3>
+    <ol type="1">
+    <li><code>schedule</code> 或 <code>workflow_dispatch</code>
+    啟動資料工作流程。</li>
+    <li>擷取腳本只允許固定的 <code>https://web.pcc.gov.tw</code> host
+    與指定 path。</li>
+    <li>使用逾時、最大回應大小、Content-Type 與 redirect 驗證取得
+    HTML。</li>
+    <li>解析器將 HTML 轉成候選資料，逐筆進行 schema
+    與商業規則驗證。</li>
+    <li>產生包含來源、查詢語意、擷取時間、schema 版本及資料雜湊的
+    JSON。</li>
+    <li>執行 typecheck、lint、unit、contract、security、build 與 E2E
+    測試。</li>
+    <li>僅部署 <code>dist/</code> artifact；工作流程不把產生資料自動
+    commit 回來源分支。</li>
+    <li>瀏覽器從同一個 Pages origin 讀取
+    <code>data/tenders.json</code>。</li>
+    </ol>
+    </section>
+    <section id="建議目錄" class="level3">
+    <h3>3.2 建議目錄</h3>
+    <pre class="text"><code>.
+├── docs/specs/001-pages-migration/
+│   ├── requirements.md
+│   ├── design.md
+│   ├── threat-model.md
+│   ├── test-plan.md
+│   └── traceability.md
+├── scripts/
+│   └── fetch-tenders.ts
+├── src/
+│   ├── contracts/tender.ts
+│   ├── services/tenderService.ts
+│   ├── features/tenders/
+│   └── test/
+├── tests/
+│   ├── fixtures/
+│   ├── integration/
+│   ├── security/
+│   └── e2e/
+├── public/data/
+│   └── tenders.json
+└── .github/
+    ├── workflows/ci.yml
+    ├── workflows/data-and-pages.yml
+    ├── workflows/codeql.yml
+    └── dependabot.yml</code></pre>
+    </section>
+    </section>
+    <section id="四規格驅動需求" class="level2">
+    <h2>四、規格驅動需求</h2>
+    <section id="功能需求" class="level3">
+    <h3>4.1 功能需求</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>ID</th>
+    <th>規格</th>
+    <th>驗收條件</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>REQ-F-001</td>
+    <td>系統應顯示最新成功發布的標案資料。</td>
+    <td>無資料時顯示明確狀態；有資料時初始 KPI 不因隱藏篩選歸零。</td>
+    </tr>
+    <tr>
+    <td>REQ-F-002</td>
+    <td>使用者可依案名、案號與招標方式篩選。</td>
+    <td>大小寫及前後空白處理一致；清除篩選可恢復全資料。</td>
+    </tr>
+    <tr>
+    <td>REQ-F-003</td>
+    <td>畫面應顯示資料擷取時間、查詢語意與來源。</td>
+    <td>使用 ISO 8601 時間與 <code>Asia/Taipei</code>
+    顯示；超過兩小時標示資料可能過期。</td>
+    </tr>
+    <tr>
+    <td>REQ-F-004</td>
+    <td>「重新整理」只重新載入已發布 JSON。</td>
+    <td>不呼叫政府採購網、不呼叫不存在的
+    <code>/api/tenders</code>。</td>
+    </tr>
+    <tr>
+    <td>REQ-F-005</td>
+    <td>資料工作流程支援排程與人工觸發。</td>
+    <td>平日每小時執行，亦可由有權限的人員手動啟動。</td>
+    </tr>
+    <tr>
+    <td>REQ-F-006</td>
+    <td>查詢語意必須與 UI 文案一致。</td>
+    <td>「當日」對應 <code>isNow</code>；「等標期內」對應
+    <code>isSpdt</code>，由 ADR 記錄最終選擇。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="資料與可靠性需求" class="level3">
+    <h3>4.2 資料與可靠性需求</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>ID</th>
+    <th>規格</th>
+    <th>驗收條件</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>REQ-D-001</td>
+    <td>發布資料必須符合版本化 JSON Schema。</td>
+    <td>schema 不符即停止部署，保留上一版可用網站。</td>
+    </tr>
+    <tr>
+    <td>REQ-D-002</td>
+    <td>每筆連結只能指向政府採購網 HTTPS URL。</td>
+    <td>非 HTTPS、非允許 host、含認證資訊或異常 port 一律拒絕。</td>
+    </tr>
+    <tr>
+    <td>REQ-D-003</td>
+    <td>擷取失敗不得覆蓋上一版有效資料。</td>
+    <td>pipeline 失敗且 Pages deployment 不執行。</td>
+    </tr>
+    <tr>
+    <td>REQ-D-004</td>
+    <td>解析器應偵測上游 HTML 結構漂移。</td>
+    <td>掃描列數、有效列數與拒絕原因須被記錄；低於門檻即失敗。</td>
+    </tr>
+    <tr>
+    <td>REQ-D-005</td>
+    <td>發布 JSON 不得含 HTML、script 或事件屬性。</td>
+    <td>惡意 fixture 經處理後只能以純文字呈現或被拒絕。</td>
+    </tr>
+    <tr>
+    <td>REQ-D-006</td>
+    <td>JSON 應包含 provenance metadata。</td>
+    <td>至少包含
+    <code>schemaVersion</code>、<code>source</code>、<code>queryMode</code>、<code>fetchedAt</code>、<code>recordCount</code>、<code>sha256</code>。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="資安需求" class="level3">
+    <h3>4.3 資安需求</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>ID</th>
+    <th>規格</th>
+    <th>強制控制</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>REQ-S-001</td>
+    <td>不得接受任意 URL 或 redirect 到非允許來源。</td>
+    <td>固定 origin、固定
+    path、<code>redirect: manual</code>、逐跳驗證。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-002</td>
+    <td>不得在 repository、artifact 或 bundle 中存在秘密。</td>
+    <td>移除 Gemini key；secret scan；bundle 字串檢查。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-003</td>
+    <td>外部 HTML 一律視為不受信任輸入。</td>
+    <td>schema allowlist、長度上限、React text rendering、禁止
+    <code>dangerouslySetInnerHTML</code>。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-004</td>
+    <td>Actions 使用最小權限。</td>
+    <td>CI <code>contents: read</code>；部署 job 才有
+    <code>pages: write</code> 與 <code>id-token: write</code>。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-005</td>
+    <td>所有 Actions 必須固定到完整 commit SHA。</td>
+    <td>repository policy 與 workflow lint 同時阻擋 tag-based
+    action。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-006</td>
+    <td>供應鏈弱點必須在合併前阻擋。</td>
+    <td>lockfile、Dependabot、dependency
+    review、<code>npm audit --audit-level=high</code>、CodeQL。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-007</td>
+    <td>瀏覽器端採同源資源與限制型 CSP。</td>
+    <td>禁止 inline script 與
+    <code>unsafe-eval</code>；<code>connect-src 'self'</code>；無第三方
+    runtime CDN。</td>
+    </tr>
+    <tr>
+    <td>REQ-S-008</td>
+    <td>發布必須可追溯且不可由 PR 程式碼取得寫入權限。</td>
+    <td>fork PR 不執行 privileged deploy；environment
+    protection；artifact 與 run 可追溯。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    </section>
+    <section id="五資料契約" class="level2">
+    <h2>五、資料契約</h2>
+    <p>建議以 TypeScript schema library 建立單一真實來源，再輸出 JSON
+    Schema。前端讀取時仍須驗證，避免錯誤 artifact 造成畫面失效。</p>
+    <div class="sourceCode" id="cb2"><pre
+    class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://web.pcc.gov.tw/&quot;</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;queryMode&quot;</span><span class="fu">:</span> <span class="st">&quot;isNow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fetchedAt&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-07-24T08:17:00+08:00&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;recordCount&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sha256&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;64 個十六進位字元&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tenders&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;115HJ08530081300520&quot;</span><span class="fu">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;標案名稱&quot;</span><span class="fu">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;method&quot;</span><span class="fu">:</span> <span class="st">&quot;公開招標&quot;</span><span class="fu">,</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;budget&quot;</span><span class="fu">:</span> <span class="dv">21389616</span><span class="fu">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;announcedDate&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-07-24&quot;</span><span class="fu">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;deadlineDate&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-08-07&quot;</span><span class="fu">,</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;link&quot;</span><span class="fu">:</span> <span class="st">&quot;https://web.pcc.gov.tw/prkms/...&quot;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+    <p>必要限制：</p>
+    <ul>
+    <li><code>id</code>、<code>name</code>、<code>method</code>
+    必須為去除控制字元後的非空純文字。</li>
+    <li><code>budget</code> 必須為有限、非負、安全整數；不得使用
+    <code>NaN</code> 或無限值。</li>
+    <li>日期轉換須明確處理民國年，不接受 JavaScript 自動猜測。</li>
+    <li><code>recordCount</code> 必須等於
+    <code>tenders.length</code>。</li>
+    <li><code>sha256</code> 針對 canonicalized tender array
+    計算，不包含自身欄位。</li>
+    <li>重複鍵建議採
+    <code>id + announcedDate + link</code>，重複資料應阻擋或明確去重。</li>
+    </ul>
+    </section>
+    <section id="六威脅模型與安全設計" class="level2">
+    <h2>六、威脅模型與安全設計</h2>
+    <section id="信任邊界" class="level3">
+    <h3>6.1 信任邊界</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>邊界</th>
+    <th>威脅</th>
+    <th>控制</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>政府網站 → Actions runner</td>
+    <td>惡意／異常 HTML、結構漂移、超大回應、慢速回應</td>
+    <td>固定 host、逾時、大小上限、Content-Type、redirect 驗證、fixture
+    regression</td>
+    </tr>
+    <tr>
+    <td>npm／Actions → Build</td>
+    <td>套件或 Action 供應鏈遭竄改</td>
+    <td>lockfile、完整 SHA、Dependabot、dependency
+    review、CodeQL、最小權限</td>
+    </tr>
+    <tr>
+    <td>Build → Pages artifact</td>
+    <td>錯誤資料、秘密、source map、非預期檔案被發布</td>
+    <td>artifact allowlist、bundle secret scan、禁止 production source
+    map、manifest 稽核</td>
+    </tr>
+    <tr>
+    <td>JSON → React DOM</td>
+    <td>XSS、惡意 URL、控制字元</td>
+    <td>schema、URL allowlist、React escaping、禁止 raw HTML</td>
+    </tr>
+    <tr>
+    <td>使用者 → Query string</td>
+    <td>DOM XSS、效能耗用、破壞初始狀態</td>
+    <td>長度限制、純字串處理、URLSearchParams、無 HTML 注入</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="主要安全測試案例" class="level3">
+    <h3>6.2 主要安全測試案例</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>ID</th>
+    <th>攻擊／失敗情境</th>
+    <th>預期結果</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>SEC-T-001</td>
+    <td>tender link 為 <code>javascript:</code>、<code>data:</code>
+    或其他 host</td>
+    <td>資料產生失敗，不發布。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-002</td>
+    <td>上游回傳 30x 到 localhost、私有 IP 或非 PCC host</td>
+    <td>redirect 被拒絕。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-003</td>
+    <td>回應超過設定大小或逾時</td>
+    <td>中止擷取，保留上一版。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-004</td>
+    <td>名稱含 <code>&lt;script&gt;</code>、事件屬性或 Unicode
+    控制字元</td>
+    <td>被拒絕或以不可執行純文字安全呈現。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-005</td>
+    <td>JSON schema 欄位缺漏、負預算、無限值或錯誤日期</td>
+    <td>contract test 失敗。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-006</td>
+    <td>workflow 使用可移動 tag 或過寬權限</td>
+    <td>workflow lint／policy 失敗。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-007</td>
+    <td>bundle 含 <code>GEMINI_API_KEY</code>、token pattern 或
+    <code>.env</code> 內容</td>
+    <td>CI 失敗且禁止部署。</td>
+    </tr>
+    <tr>
+    <td>SEC-T-008</td>
+    <td>Pull Request 嘗試修改擷取腳本並取得 Pages 寫入權限</td>
+    <td>PR 僅執行 read-only CI，不執行 privileged deployment。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="github-pages-的標頭限制" class="level3">
+    <h3>6.3 GitHub Pages 的標頭限制</h3>
+    <p>GitHub Pages 支援 HTTPS enforcement，但 repository
+    目前無法自行定義完整的 response headers。使用
+    <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code>
+    可提供大部分 XSS 防禦，但不能實作
+    <code>frame-ancestors</code>、sandbox 或 CSP reporting。</p>
+    <p>因此分成兩級驗收：</p>
+    <ul>
+    <li><strong>Level A—純 Pages 必過：</strong> HTTPS、無 mixed
+    content、CSP meta、無 inline script、無
+    <code>unsafe-eval</code>、同源資源、無秘密、XSS
+    負向測試、SAST／SCA／DAST 應用層測試。</li>
+    <li><strong>Level B—嚴格標頭掃描：</strong> 若稽核要求 CSP response
+    header、HSTS、X-Frame-Options／<code>frame-ancestors</code>、Permissions-Policy、Cross-Origin
+    policies，則在自訂網域前增加可設定標頭的 CDN／反向代理，或改採支援
+    <code>_headers</code> 的靜態主機。</li>
+    </ul>
+    <p>此限制必須在 Sprint 0
+    由資安單位確認；不能在結案時才以風險接受補件。</p>
+    </section>
+    </section>
+    <section id="七tdd-實作策略" class="level2">
+    <h2>七、TDD 實作策略</h2>
+    <section id="redgreenrefactor-規則" class="level3">
+    <h3>7.1 Red—Green—Refactor 規則</h3>
+    <ol type="1">
+    <li>每個需求先建立失敗測試，測試名稱包含需求 ID。</li>
+    <li>只實作讓測試通過的最小程式碼。</li>
+    <li>測試通過後才能重構；重構不得降低 coverage 或移除負向案例。</li>
+    <li>每次解析規則修正，都先新增能重現上游變動的 fixture。</li>
+    <li>Bug 修正必須先有 regression test，不能只人工確認。</li>
+    </ol>
+    </section>
+    <section id="測試分層" class="level3">
+    <h3>7.2 測試分層</h3>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>層級</th>
+    <th>工具建議</th>
+    <th>重點</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>Unit</td>
+    <td>Vitest</td>
+    <td>日期轉換、金額解析、文字清理、URL
+    allowlist、hash、統計計算。</td>
+    </tr>
+    <tr>
+    <td>Parser fixture</td>
+    <td>Vitest＋Cheerio</td>
+    <td>正常列、缺欄、欄位順序變動、惡意內容、零資料及 100 筆上限。</td>
+    </tr>
+    <tr>
+    <td>Contract</td>
+    <td>JSON Schema／Zod</td>
+    <td>生產者與消費者共用契約；錯誤資料必須 fail closed。</td>
+    </tr>
+    <tr>
+    <td>Component</td>
+    <td>Testing Library</td>
+    <td>初始全資料、篩選、空狀態、過期狀態、錯誤 JSON。</td>
+    </tr>
+    <tr>
+    <td>E2E</td>
+    <td>Playwright</td>
+    <td>GitHub Pages base path、桌機／手機、重新載入、外部連結、安全
+    DOM。</td>
+    </tr>
+    <tr>
+    <td>Accessibility</td>
+    <td>axe-core＋Playwright</td>
+    <td>WCAG 2.2 AA 自動化規則、鍵盤操作、語意標題與圖表替代資訊。</td>
+    </tr>
+    <tr>
+    <td>Security</td>
+    <td>CodeQL／dependency review／ZAP baseline</td>
+    <td>SAST、SCA、DOM XSS、CSP、公開檔案與秘密檢查。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="最低測試集合" class="level3">
+    <h3>7.3 最低測試集合</h3>
+    <ul>
+    <li><code>REQ-F-001</code>：無 query parameter 時顯示全部 fixture
+    資料。</li>
+    <li><code>REQ-F-002</code>：搜尋案名、案號、方法與清除篩選。</li>
+    <li><code>REQ-F-003</code>：新鮮、過期及無效時間戳狀態。</li>
+    <li><code>REQ-F-004</code>：重新整理只請求 Pages 同源 JSON。</li>
+    <li><code>REQ-F-006</code>：<code>isNow</code>／<code>isSpdt</code>
+    URL builder 快照與語意測試。</li>
+    <li><code>REQ-D-001</code>：正確 schema
+    通過；每個必要欄位缺失均失敗。</li>
+    <li><code>REQ-D-002</code>：scheme、host、port、username、redirect
+    負向測試。</li>
+    <li><code>REQ-D-003</code>：擷取失敗時 deploy job 不執行。</li>
+    <li><code>REQ-D-004</code>：解析成功率低於門檻時 fail closed。</li>
+    <li><code>REQ-D-005</code>：script、事件屬性、HTML entity、控制字元
+    fixture。</li>
+    <li><code>REQ-S-002</code>：dist 與 artifact secret pattern
+    scan。</li>
+    <li><code>REQ-S-004</code>：workflow permission 靜態測試。</li>
+    <li><code>REQ-S-005</code>：Action reference 必須為 40 字元完整
+    SHA。</li>
+    <li><code>REQ-S-007</code>：CSP meta 存在且不含
+    <code>unsafe-eval</code>／inline script。</li>
+    <li>視覺回歸：1440×1000 與 390×844。</li>
+    <li>Smoke：部署後 JSON、JS、CSS、404 與 base path 全部正確。</li>
+    </ul>
+    </section>
+    </section>
+    <section id="八cicd-與發布閘門" class="level2">
+    <h2>八、CI/CD 與發布閘門</h2>
+    <section id="pull-request-閘門" class="level3">
+    <h3>8.1 Pull Request 閘門</h3>
+    <p>以下任一失敗即禁止合併：</p>
+    <ol type="1">
+    <li><code>npm ci</code> 與 lockfile immutable check。</li>
+    <li>format、ESLint、TypeScript strict typecheck。</li>
+    <li>unit、parser fixture、contract、component test。</li>
+    <li>coverage 門檻。</li>
+    <li>production build 與 bundle manifest／secret scan。</li>
+    <li>CodeQL <code>javascript-typescript</code> 與 GitHub Actions
+    分析。</li>
+    <li>dependency review 與 Critical／High vulnerability gate。</li>
+    <li>workflow permissions、完整 SHA 與危險 expression lint。</li>
+    <li>Playwright E2E、axe accessibility 與 CSP smoke test。</li>
+    </ol>
+    </section>
+    <section id="排程發布閘門" class="level3">
+    <h3>8.2 排程發布閘門</h3>
+    <pre class="text"><code>fetch → validate source → parse → schema → security tests
+      → build → E2E → artifact manifest → deploy</code></pre>
+    <p>發布 job 僅在前面所有工作成功後執行，並使用：</p>
+    <ul>
+    <li><code>contents: read</code></li>
+    <li><code>pages: write</code></li>
+    <li><code>id-token: write</code></li>
+    <li>GitHub <code>github-pages</code> environment</li>
+    <li><code>concurrency</code> 防止同時發布</li>
+    <li>完整 SHA 固定的官方 Actions</li>
+    <li>artifact retention 與 deployment URL 紀錄</li>
+    </ul>
+    <p>建議排程避開整點高峰，例如平日
+    <code>08:17–20:17 Asia/Taipei</code> 每小時執行；UI 顯示實際
+    <code>fetchedAt</code>，不能把排程時間當成成功時間。</p>
+    </section>
+    <section id="失敗策略" class="level3">
+    <h3>8.3 失敗策略</h3>
+    <ul>
+    <li>上游不可用、零資料異常、schema
+    失敗或安全測試失敗：<strong>不發布</strong>。</li>
+    <li>解析筆數相較最近成功版本大幅下降：<strong>阻擋並要求人工確認</strong>。</li>
+    <li>僅 UI 建置失敗：<strong>不影響既有 Pages 版本</strong>。</li>
+    <li>連續三次失敗：建立 GitHub Issue 或通知維護者。</li>
+    <li>恢復時必須保留失敗 run、測試報告與資料摘要作為稽核證據。</li>
+    </ul>
+    </section>
+    </section>
+    <section id="九執行階段與交付物" class="level2">
+    <h2>九、執行階段與交付物</h2>
+    <table>
+    <colgroup>
+    <col style="width: 18%" />
+    <col style="width: 18%" />
+    <col style="width: 18%" />
+    <col style="width: 18%" />
+    <col style="width: 25%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>階段</th>
+    <th>工作內容</th>
+    <th>主要交付物</th>
+    <th>Exit criteria</th>
+    <th style="text-align: right;">工期</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>Sprint 0</td>
+    <td>確認「當日／等標期內」、Pages header 驗收與資料更新 SLA。</td>
+    <td>requirements、ADR、風險接受／補償決策</td>
+    <td>產品、開發、資安共同核准。</td>
+    <td style="text-align: right;">1 日</td>
+    </tr>
+    <tr>
+    <td>Sprint 1</td>
+    <td>建立 schema、固定來源 fetcher、parser fixture 與
+    provenance。</td>
+    <td>contracts、fetch script、fixtures、unit tests</td>
+    <td>解析核心 coverage ≥ 95%，所有安全負向測試通過。</td>
+    <td style="text-align: right;">2 日</td>
+    </tr>
+    <tr>
+    <td>Sprint 2</td>
+    <td>改造前端讀取靜態 JSON，修正初始搜尋、錯誤與過期狀態。</td>
+    <td>tenderService、UI components、component tests</td>
+    <td>無 <code>/api/tenders</code>、無 Gemini、base path E2E
+    通過。</td>
+    <td style="text-align: right;">1.5 日</td>
+    </tr>
+    <tr>
+    <td>Sprint 3</td>
+    <td>建立 CI、CodeQL、dependency review、secret scan 與 Pages
+    workflow。</td>
+    <td>workflows、Dependabot、artifact policy</td>
+    <td>PR read-only、deploy 最小權限、Actions 全部 SHA pin。</td>
+    <td style="text-align: right;">1.5 日</td>
+    </tr>
+    <tr>
+    <td>Sprint 4</td>
+    <td>DAST、可及性、響應式、故障演練與文件追溯。</td>
+    <td>test reports、traceability、runbook</td>
+    <td>所有驗收閘門通過，無 Critical／High 未結案。</td>
+    <td style="text-align: right;">1.5 日</td>
+    </tr>
+    <tr>
+    <td>Cutover</td>
+    <td>啟用 Pages、HTTPS、environment protection 與監測。</td>
+    <td>production URL、release record、rollback evidence</td>
+    <td>連續三次排程成功，rollback 演練完成。</td>
+    <td style="text-align: right;">0.5–1 日</td>
+    </tr>
+    </tbody>
+    </table>
+    <p><strong>基準估算：8 個工程人日；含上游 HTML
+    變動、資安複測與審查緩衝後，建議排定 10 個工程人日。</strong></p>
+    </section>
+    <section id="十程式碼修改清單" class="level2">
+    <h2>十、程式碼修改清單</h2>
+    <section id="移除" class="level3">
+    <h3>10.1 移除</h3>
+    <ul>
+    <li><code>server.ts</code></li>
+    <li><code>src/services/geminiService.ts</code></li>
+    <li><code>@google/genai</code>、<code>express</code>、<code>dotenv</code>
+    與伺服器專用相依</li>
+    <li>Vite 中 <code>process.env.GEMINI_API_KEY</code> 注入</li>
+    <li><code>/api/tenders</code> 呼叫及任意 URL 參數</li>
+    <li>固定 100% 信心分數與不正確的 debug 顯示</li>
+    <li>production source map、外部 Google Fonts runtime 請求</li>
+    </ul>
+    </section>
+    <section id="新增" class="level3">
+    <h3>10.2 新增</h3>
+    <ul>
+    <li><code>scripts/fetch-tenders.ts</code></li>
+    <li><code>src/contracts/tender.ts</code></li>
+    <li><code>src/services/tenderService.ts</code></li>
+    <li><code>tests/fixtures/*.html</code></li>
+    <li><code>tests/security/*.test.ts</code></li>
+    <li><code>.github/workflows/ci.yml</code></li>
+    <li><code>.github/workflows/data-and-pages.yml</code></li>
+    <li><code>.github/workflows/codeql.yml</code></li>
+    <li><code>.github/dependabot.yml</code></li>
+    <li>CSP meta、資料過期提示、資料來源與非官方聲明</li>
+    <li><code>docs/specs/001-pages-migration/</code> 下的 SDD 文件</li>
+    </ul>
+    </section>
+    <section id="修改" class="level3">
+    <h3>10.3 修改</h3>
+    <ul>
+    <li><code>vite.config.ts</code>：依 repository name 設定 GitHub
+    Pages <code>base</code>。</li>
+    <li><code>src/App.tsx</code>：拆分資料載入、KPI、圖表及列表；預設搜尋改為空字串。</li>
+    <li><code>src/types.ts</code>：由 schema 推導型別，補齊
+    <code>link</code> 與 provenance。</li>
+    <li><code>package.json</code>：建立
+    <code>test</code>、<code>test:coverage</code>、<code>test:e2e</code>、<code>security</code>、<code>fetch:data</code>
+    與 <code>build:pages</code> scripts。</li>
+    <li><code>index.html</code>：<code>lang="zh-TW"</code>、CSP
+    meta、referrer policy 與基本 SEO metadata。</li>
+    <li><code>README.md</code>：改為架構、開發、測試、部署、事故處理與資料來源說明。</li>
+    </ul>
+    </section>
+    </section>
+    <section id="十一需求測試追溯矩陣" class="level2">
+    <h2>十一、需求—測試追溯矩陣</h2>
+    <table>
+    <colgroup>
+    <col style="width: 25%" />
+    <col style="width: 25%" />
+    <col style="width: 25%" />
+    <col style="width: 25%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>需求</th>
+    <th>設計元件</th>
+    <th>測試證據</th>
+    <th>發布閘門</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>REQ-F-001～006</td>
+    <td>App、tenderService、query ADR</td>
+    <td>component＋E2E</td>
+    <td>CI／E2E</td>
+    </tr>
+    <tr>
+    <td>REQ-D-001～006</td>
+    <td>schema、parser、provenance</td>
+    <td>contract＋fixture</td>
+    <td>data validation</td>
+    </tr>
+    <tr>
+    <td>REQ-S-001～003</td>
+    <td>fixed fetcher、URL policy、React rendering</td>
+    <td>security unit＋ZAP</td>
+    <td>security job</td>
+    </tr>
+    <tr>
+    <td>REQ-S-004～006</td>
+    <td>workflow、lockfile、Dependabot、CodeQL</td>
+    <td>workflow lint＋SCA</td>
+    <td>branch protection</td>
+    </tr>
+    <tr>
+    <td>REQ-S-007</td>
+    <td>index CSP、same-origin assets</td>
+    <td>CSP smoke＋E2E</td>
+    <td>build／DAST</td>
+    </tr>
+    <tr>
+    <td>REQ-S-008</td>
+    <td>environment、permissions、artifact</td>
+    <td>permission test＋deployment record</td>
+    <td>protected deploy</td>
+    </tr>
+    </tbody>
+    </table>
+    <p>完整追溯文件必須列出實際測試檔名、test ID、最後執行 run
+    URL、結果及例外核准期限。</p>
+    </section>
+    <section id="十二驗收與資安測試清單" class="level2">
+    <h2>十二、驗收與資安測試清單</h2>
+    <section id="必過" class="level3">
+    <h3>12.1 必過</h3>
+    <ul class="task-list">
+    <li><label><input
+    type="checkbox" />功能需求與資料需求全部通過。</label></li>
+    <li><label><input type="checkbox" />不存在公開應用程式後端、任意 URL
+    fetch 或 SSRF 入口。</label></li>
+    <li><label><input type="checkbox" />repository、Git history、Actions
+    log、dist 與 artifact 均無秘密。</label></li>
+    <li><label><input type="checkbox" />所有外部連結均為允許的 PCC HTTPS
+    URL。</label></li>
+    <li><label><input type="checkbox" />無
+    <code>dangerouslySetInnerHTML</code>、inline script 或
+    <code>unsafe-eval</code>。</label></li>
+    <li><label><input type="checkbox" />CodeQL、dependency
+    review、secret scan 無 Critical／High 未處理項目。</label></li>
+    <li><label><input type="checkbox" />coverage、E2E、axe、CSP、base
+    path 與 smoke test 達標。</label></li>
+    <li><label><input type="checkbox" />GitHub Actions 最小權限、完整
+    SHA、protected environment 已啟用。</label></li>
+    <li><label><input type="checkbox" />HTTPS enforcement
+    已啟用，且不存在 mixed content。</label></li>
+    <li><label><input type="checkbox" />失敗不發布、上一版保留與
+    rollback 已完成演練。</label></li>
+    </ul>
+    </section>
+    <section id="有條件項目" class="level3">
+    <h3>12.2 有條件項目</h3>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />資安單位確認純 Pages 的 response
+    header 限制是否可接受。</label></li>
+    <li><label><input type="checkbox" />若不可接受，已完成自訂網域＋CDN
+    header policy，並重新執行 header scan。</label></li>
+    <li><label><input type="checkbox" />若 DAST 工具要求伺服器端 CSP
+    reporting，已有替代主機或正式風險接受。</label></li>
+    <li><label><input type="checkbox" />若 repository 為
+    public，確認發布 JSON 不含機敏、受限或不宜再散布內容。</label></li>
+    </ul>
+    </section>
+    <section id="不接受的結案方式" class="level3">
+    <h3>12.3 不接受的結案方式</h3>
+    <ul>
+    <li>以「靜態網站所以沒有風險」取代威脅模型。</li>
+    <li>以 <code>@ts-ignore</code>、停用測試或降低 coverage 通過
+    CI。</li>
+    <li>將高風險弱點列為「之後處理」但沒有 owner、期限與正式核准。</li>
+    <li>將 API key 改名後繼續放在 Vite environment variable。</li>
+    <li>以 CSP meta 宣稱已涵蓋 <code>frame-ancestors</code> 或完整
+    security headers。</li>
+    </ul>
+    </section>
+    </section>
+    <section id="十三風險與因應" class="level2">
+    <h2>十三、風險與因應</h2>
+    <table>
+    <colgroup>
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    <col style="width: 33%" />
+    </colgroup>
+    <thead>
+    <tr>
+    <th>風險</th>
+    <th>機率／影響</th>
+    <th>因應</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>政府採購網 HTML 改版</td>
+    <td>中／高</td>
+    <td>fixture、結構漂移門檻、失敗不發布、維護 runbook。</td>
+    </tr>
+    <tr>
+    <td>Actions 排程延遲或停用</td>
+    <td>中／中</td>
+    <td>顯示 <code>fetchedAt</code>、手動觸發、連續失敗告警、SLA
+    不承諾秒級。</td>
+    </tr>
+    <tr>
+    <td>Pages 安全標頭不符掃描政策</td>
+    <td>高／中至高</td>
+    <td>Sprint 0 決策；必要時加入可設定標頭的 CDN／反向代理。</td>
+    </tr>
+    <tr>
+    <td>供應鏈相依遭污染</td>
+    <td>低至中／高</td>
+    <td>lockfile、SHA pin、最小權限、CodeQL、dependency review。</td>
+    </tr>
+    <tr>
+    <td>空資料被誤判為成功</td>
+    <td>中／高</td>
+    <td>與歷史基線比較、零筆異常門檻、人工核准。</td>
+    </tr>
+    <tr>
+    <td>公開資料被誤認為官方資訊</td>
+    <td>中／中</td>
+    <td>明確來源、更新時間、非官方聲明與原始標案連結。</td>
+    </tr>
+    </tbody>
+    </table>
+    </section>
+    <section id="十四核准事項" class="level2">
+    <h2>十四、核准事項</h2>
+    <p>專案開始前需取得以下決策：</p>
+    <ol type="1">
+    <li>儀表板定義為「當日公告」或「目前等標期內」。</li>
+    <li>可接受的資料更新頻率與過期門檻。</li>
+    <li>資安測試是否強制要求可自訂的 HTTP response headers。</li>
+    <li>repository 採 public 或 private，以及 Pages 的公開可見性。</li>
+    <li>Critical／High 一律阻擋；Medium
+    例外的核准人、期限與複測規則。</li>
+    <li>失敗通知的 owner 與最長處理時間。</li>
+    </ol>
+    <section id="建議核准文字" class="level3 approval-box">
+    <h3>建議核准文字</h3>
+    <p>同意以 GitHub Actions 定時產生經驗證的靜態資料，並由 GitHub Pages
+    發布；同意移除 Express、Gemini SDK、前端 API 金鑰與任意 URL
+    代理。開發採 SDD 規格追溯及 TDD
+    測試先行，所有資安、品質與部署閘門通過後始得上線。若資安驗收要求
+    GitHub Pages 無法提供的 response headers，則啟用自訂網域前置
+    CDN／反向代理，或改採可設定標頭的靜態主機，不以風險未揭露方式結案。</p>
+    </section>
+    </section>
+    <section id="十五參考基準" class="level2">
+    <h2>十五、參考基準</h2>
+    <ul>
+    <li><a
+    href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub
+    Pages 是靜態網站託管服務</a></li>
+    <li><a href="https://vite.dev/guide/static-deploy.html">Vite 官方
+    GitHub Pages 部署指南</a></li>
+    <li><a
+    href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows">GitHub
+    Actions 排程事件與限制</a></li>
+    <li><a
+    href="https://docs.github.com/en/actions/reference/security/secure-use">GitHub
+    Actions 安全使用與完整 SHA 固定</a></li>
+    <li><a
+    href="https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning">GitHub
+    CodeQL code scanning</a></li>
+    <li><a
+    href="https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https">GitHub
+    Pages HTTPS enforcement</a></li>
+    <li><a
+    href="https://owasp.org/www-project-application-security-verification-standard/">OWASP
+    ASVS 5.0.0</a></li>
+    <li><a
+    href="https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html">OWASP
+    Content Security Policy Cheat Sheet</a></li>
+    <li><a
+    href="https://github.com/orgs/community/discussions/54257">GitHub
+    Pages custom HTTP headers 現有限制</a></li>
+    </ul>
+    <hr />
+    <p><strong>文件版本：</strong> 1.0<br />
+    <strong>提案日期：</strong> 2026-07-24<br />
+    <strong>適用專案：</strong> 國防部標案即時儀表板（AI Studio
+    匯出版）<br />
+    <strong>下一步：</strong> 核准 Sprint 0 決策項目後，建立
+    <code>docs/specs/001-pages-migration/</code> 規格套件並進入第一個
+    failing test。</p>
+    </section>
+  </main>
+  <footer>
+    <p>GitHub Pages 靜態化遷移提案 · 文件版本 1.0 · 2026-07-24</p>
+  </footer>
+</body>
+</html>
