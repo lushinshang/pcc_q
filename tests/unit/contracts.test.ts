@@ -56,6 +56,7 @@ describe("REQ-D-001/002/005 data contract", () => {
       id: "B",
       name: "B案",
       method: "公開招標",
+      org: "國防部",
       budget: 2,
       announcedDate: "2026-07-24",
       deadlineDate: "2026-08-02",
@@ -75,7 +76,7 @@ describe("REQ-D-001/002/005 data contract", () => {
   it("CONTRACT-T-007 rejects a dataset with a mismatched count or hash", () => {
     expect(() =>
       parseTenderDataset({
-        schemaVersion: "1.0.0",
+        schemaVersion: "1.1.0",
         source: "https://web.pcc.gov.tw/",
         queryMode: "isNow",
         fetchedAt: "2026-07-24T08:17:00+08:00",
@@ -91,13 +92,14 @@ describe("REQ-D-001/002/005 data contract", () => {
       id: "A",
       name: "A案",
       method: "公開招標",
+      org: "國防部",
       budget: 1,
       announcedDate: "2026-07-24",
       deadlineDate: "2026-08-01",
       link: "https://web.pcc.gov.tw/prkms/a",
     };
     const base = {
-      schemaVersion: "1.0.0",
+      schemaVersion: "1.1.0",
       source: "https://web.pcc.gov.tw/",
       queryMode: "isNow",
       fetchedAt: "2026-07-24T08:17:00+08:00",

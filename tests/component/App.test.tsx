@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createTenderDataset } from "../../scripts/lib/dataset";
 import type { TenderDataset } from "../../src/contracts/tender";
 import { loadTenderDataset } from "../../src/services/tenderService";
+import { taipeiDate } from "../../src/utils/dateRange";
 
 vi.mock("../../src/services/tenderService", () => ({
   loadTenderDataset: vi.fn(),
@@ -16,6 +17,10 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
+// 預設篩選是「機關=國防部、日期範圍=當日」，fixture 必須用當下日期，
+// 否則測試結果會隨執行日期漂移。
+const TODAY = taipeiDate(Date.now());
+
 function fixtureDataset(fetchedAt = new Date().toISOString()): TenderDataset {
   return createTenderDataset(
     [
@@ -23,8 +28,9 @@ function fixtureDataset(fetchedAt = new Date().toISOString()): TenderDataset {
         id: "A-001",
         name: "醫療大樓整修工程",
         method: "公開招標",
+        org: "國防部",
         budget: 21_389_616,
-        announcedDate: "2026-07-24",
+        announcedDate: TODAY,
         deadlineDate: "2026-08-07",
         link: "https://web.pcc.gov.tw/prkms/a",
       },
@@ -32,8 +38,9 @@ function fixtureDataset(fetchedAt = new Date().toISOString()): TenderDataset {
         id: "B-002",
         name: "航電系統委商維護",
         method: "限制性招標",
+        org: "國防部",
         budget: 1_200_000,
-        announcedDate: "2026-07-24",
+        announcedDate: TODAY,
         deadlineDate: "2026-08-01",
         link: "https://web.pcc.gov.tw/prkms/b",
       },

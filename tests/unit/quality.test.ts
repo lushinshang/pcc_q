@@ -5,6 +5,7 @@ const tender = {
   id: "A",
   name: "測試標案",
   method: "公開招標",
+  org: "國防部",
   budget: 1,
   announcedDate: "2026-07-24",
   deadlineDate: "2026-08-01",

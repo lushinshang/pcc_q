@@ -3,29 +3,33 @@
 ## 架構
 
 ```text
-web.pcc.gov.tw
+web.pcc.gov.tw（不限機關，isNow 逐頁分頁擷取）
   → scripts/fetch-tenders.ts
-  → secureFetch（固定來源、逾時、大小、Content-Type、redirect）
-  → tenderParser（Cheerio fixture 驗證）
+  → secureFetch + pccPagination（固定來源、逾時、大小、Content-Type、redirect、跟隨分頁連結）
+  → tenderParser（Cheerio fixture 驗證 + orgWhitelist 名稱比對過濾）
+  → 與前一版 Pages 資料集合併，剪枝超過 30 天的舊記錄（滾動累積）
   → TenderDataset Zod contract＋SHA-256
   → public/data/tenders.json
   → Vite dist artifact
   → GitHub Pages
   → tenderService 同源載入及再次驗證
-  → React dashboard
+  → React dashboard（機關／日期範圍/搜尋/招標方式皆為前端本地端篩選）
 ```
 
 ## 元件責任
 
-- `src/contracts/tender.ts`：Tender／Dataset 契約、文字、日期、金額、URL 驗證與 canonicalization。
-- `scripts/lib/secureFetch.ts`：只建立固定 PCC `isNow` 查詢，限制網路行為。
-- `scripts/lib/baseline.ts`：由受限的 `owner/repository` slug 推導既有 GitHub Pages JSON URL；只在同一台北日期比較最近成功版本，下降超過 50% 時阻擋。
-- `scripts/lib/tenderParser.ts`：把預期表格列轉為 validated Tender，不接受 raw HTML。
+- `src/contracts/tender.ts`：Tender／Dataset 契約、文字、日期、金額、URL 驗證與 canonicalization；`org` 欄位限定於 `ORG_LABELS` 列舉值。
+- `src/contracts/orgWhitelist.ts`：機關白名單與 `resolveOrgLabel()`，依優先序（中央機關 > 直轄市 > 縣市政府 > 國營事業）用名稱字串比對收斂下轄單位，無命中回傳 `null`。
+- `scripts/lib/secureFetch.ts`：建立不限機關的 PCC `isNow` 查詢（`orgId` 為空字串），單頁請求邏輯；`fetchPccHtml` 回傳 HTML 與合併後的 cookie 供分頁串接。
+- `scripts/lib/pccPagination.ts`：跟隨回應 HTML 中的「下一頁」連結逐頁擷取，不硬編碼分頁參數；`MAX_PCC_PAGES` 為分頁次數安全上限。
+- `scripts/lib/baseline.ts`：由受限的 `owner/repository` slug 推導既有 GitHub Pages JSON URL；`assertNoLargeSameDayDrop` 比較兩次同日「當日新增筆數」而非整份滾動累積後的 `recordCount`；`pruneOlderThanRollingWindow`／`mergeTenders` 提供 30 天滾動視窗的剪枝與去重合併。
+- `scripts/lib/tenderParser.ts`：把預期表格列轉為 validated Tender，不接受 raw HTML；`parseTenderPages` 合併多頁結果並套用 `MAX_TOTAL_SCANNED_ROWS` 總量安全上限；機關不在白名單時靜默排除（不計入解析拒絕率）。
 - `scripts/lib/dataset.ts`：計算 hash、建立 dataset、寫入前驗證。
-- `scripts/fetch-tenders.ts`：CLI orchestration；不接受完整 URL。
+- `scripts/fetch-tenders.ts`：CLI orchestration；不接受完整 URL；串起分頁擷取、白名單過濾、與前一版資料合併剪枝的完整流程。
 - `src/services/tenderService.ts`：只讀取 `${BASE_URL}data/tenders.json` 並驗證。
+- `src/utils/dateRange.ts`：前端「當日／一週／一個月」篩選的純函式，依 Taipei 日曆日比較 `announcedDate`，不觸發任何額外網路請求。
 - `config/pagesBase.ts`：由 Vite 與 Playwright 共用。Project Pages 預設推導 `/<repository>/`；自訂網域／root 可用經嚴格路徑驗證的 `PAGES_BASE_PATH=/`，拒絕完整 URL、protocol-relative 值與 traversal。
-- `src/App.tsx`：純 presentation／interaction，不直接接觸 PCC。
+- `src/App.tsx`：純 presentation／interaction，不直接接觸 PCC；機關與日期範圍篩選皆為對已載入資料的本地端 filter。
 
 ## 信任邊界
 
@@ -35,7 +39,9 @@ web.pcc.gov.tw
 
 - 網路、redirect、Content-Type、大小或解析失敗：process 非零退出。
 - 零有效資料或結構漂移：process 非零退出。
-- 同一台北日期且上一版至少四筆時，新資料少於上一版 50%：process 非零退出；跨日不比較。
+- 同一台北日期且上一版「當日新增筆數」至少四筆時，新一輪當日新增少於上一版當日新增的 50%：process 非零退出；跨日不比較。
+- 多頁合計掃描列數超過 `MAX_TOTAL_SCANNED_ROWS`（現行 3,000）：process 非零退出，視為上游異常暴增。
+- 分頁連結跳出固定 PCC 查詢路徑：process 非零退出。
 - Actions 前置 job 失敗：deploy job 不執行，既有 Pages 版本保留。
 - CI／data workflow 以完整 checkout 執行 Gitleaks v8.30.1；`--redact` 避免 finding 把秘密值寫回 log。
 - 前端重新載入失敗且已有資料：保留既有資料並顯示警告。

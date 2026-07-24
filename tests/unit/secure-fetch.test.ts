@@ -13,7 +13,7 @@ describe("REQ-S-001 fixed-origin fetch", () => {
     );
     expect(url.searchParams.get("dateType")).toBe("isNow");
     expect(url.search).not.toContain("isSpdt");
-    expect(url.searchParams.get("orgId")).toBe("3.5");
+    expect(url.searchParams.get("orgId")).toBe("");
   });
 
   it.each([
@@ -44,8 +44,8 @@ describe("REQ-S-001 fixed-origin fetch", () => {
       }),
     );
 
-    await expect(fetchPccHtml({ fetchImpl: fakeFetch })).resolves.toBe(
-      "<html>ok</html>",
+    await expect(fetchPccHtml({ fetchImpl: fakeFetch })).resolves.toMatchObject(
+      { html: "<html>ok</html>" },
     );
     const requestOptions = fakeFetch.mock.calls[0]?.[1];
     expect(requestOptions?.credentials).toBe("omit");
@@ -150,6 +150,34 @@ describe("REQ-S-001 fixed-origin fetch", () => {
     expect(fakeFetch).toHaveBeenCalledWith(
       expect.any(URL),
       expect.objectContaining({ redirect: "manual" }),
+    );
+  });
+
+  it("SEC-T-012 merges Set-Cookie values into the returned cookie string and forwards it on the next call", async () => {
+    const fakeFetch = vi.fn<typeof fetch>().mockImplementation(() =>
+      Promise.resolve(
+        new Response("<html>ok</html>", {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "15",
+          },
+        }),
+      ),
+    );
+    vi.spyOn(Headers.prototype, "getSetCookie").mockReturnValue([
+      "JSESSIONID=abc; Path=/prkms; HttpOnly",
+      "webpcc=def; Path=/; HttpOnly",
+    ]);
+
+    const first = await fetchPccHtml({ fetchImpl: fakeFetch });
+    expect(first.cookie).toBe("JSESSIONID=abc; webpcc=def");
+
+    await fetchPccHtml({ fetchImpl: fakeFetch, cookie: first.cookie });
+    const secondRequestHeaders = new Headers(
+      fakeFetch.mock.calls[1]?.[1]?.headers,
+    );
+    expect(secondRequestHeaders.get("Cookie")).toBe(
+      "JSESSIONID=abc; webpcc=def",
     );
   });
 });

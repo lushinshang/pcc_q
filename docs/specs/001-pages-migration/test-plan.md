@@ -11,13 +11,15 @@
 
 ## 測試層級
 
-- Unit：日期、金額、文字、URL、hash、資料新鮮度。
-- Parser fixture：正常、缺欄、欄位漂移、零列、惡意 scheme、script、event attribute、HTML entity 與 Unicode 控制字元。
-- Contract：dataset 欄位、count、hash 與消費端驗證。
-- Component：初始資料、篩選、stale、錯誤與重新整理。
+- Unit：日期、金額、文字、URL、hash、資料新鮮度、日期範圍篩選（`dateRange.ts`）。
+- Parser fixture：正常、缺欄、欄位漂移、零列、惡意 scheme、script、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-009）。
+- Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、分頁次數安全上限、cookie 串接（PAG-T-001～006）。
+- Rolling window：30 天剪枝、合併去重、同日新增筆數驟降偵測（BASE-T-007／008）。
+- Contract：dataset 欄位、count、hash、`org` 列舉值與消費端驗證。
+- Component：初始資料（機關＝國防部、日期範圍＝當日）、篩選、stale、錯誤與重新整理。
 - Security：workflow 權限、SHA pin、CSP、dist secret scan。
 - Secret history：在 Git repository workflow 中以固定版本 Gitleaks 掃描完整 history，並強制 redact。
-- E2E：桌機／手機、axe、CSP、請求目的地與水平溢位；GitHub Pages base path 另由 unit，以及 project 與 root/custom-domain production build 驗證。
+- E2E：桌機／手機、axe、CSP、請求目的地、水平溢位，以及機關／日期範圍下拉的預設值與切換行為（E2E-T-004）；GitHub Pages base path 另由 unit，以及 project 與 root/custom-domain production build 驗證。
 - Smoke：獨立指令連線真實 PCC，不納入 deterministic unit suite。
 
 ## 門檻

@@ -1,6 +1,6 @@
 # 國防部當日公告標案儀表板
 
-以「方案 A」運作的純靜態 React／Vite 儀表板。GitHub Actions 依 `dateType=isNow` 與國防部機關代碼 `orgId=3.5` 擷取政府電子採購網，經固定來源限制、HTML parser、Zod 契約與 SHA-256 驗證後，才把 `dist` 發布到 GitHub Pages。瀏覽器只讀取同源 `data/tenders.json`，不會直接存取政府採購網。
+以「方案 A」運作的純靜態 React／Vite 儀表板。GitHub Actions 依 `dateType=isNow`（不限機關，逐頁擷取全國當日公告）擷取政府電子採購網，經固定來源限制、HTML parser、機關白名單過濾、Zod 契約與 SHA-256 驗證後，把過去 30 天累積的資料發布到 GitHub Pages。瀏覽器只讀取同源 `data/tenders.json`，並可用機關（預設國防部）與日期範圍（當日／一週／一個月）在本地端篩選，不會直接存取政府採購網。
 
 本站為非官方公開資料整理，內容以政府電子採購網公告為準。不使用 Gemini 或其他生成式 AI API，也不需要任何 API key。
 
@@ -48,7 +48,7 @@ npm audit --audit-level=high
 
 ## GitHub Pages 部署
 
-`.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 08:17–20:17 每小時執行。只有 fetch、format、lint、strict typecheck、coverage、workflow policy、build、HTML validation、dist scan、E2E 與 audit 全部通過後，deploy job 才能取得 `pages: write` 與 `id-token: write`，並發布只含 `dist` 的 artifact。
+`.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 每 3 小時（`0,3,6,9,12,15,18,21` 點）執行。只有 fetch、format、lint、strict typecheck、coverage、workflow policy、build、HTML validation、dist scan、E2E 與 audit 全部通過後，deploy job 才能取得 `pages: write` 與 `id-token: write`，並發布只含 `dist` 的 artifact。
 
 Repository 的 Pages Source 必須設為 **GitHub Actions**。部署 environment 固定為 `github-pages`，建議在 GitHub 設定 environment protection rules。CI、dependency review、CodeQL 與 Dependabot 設定均位於 `.github/`；所有 Actions 均鎖定已核對的完整 commit SHA。
 
@@ -66,7 +66,7 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 ### 1. 架構改造與安全邊界
 
-- **資料流轉**：政府電子採購網 (PCC) `dateType=isNow` & `orgId=3.5` → GitHub Actions 於平日 Asia/Taipei 08:17–20:17 定時擷取 → HTML Secure Parser & Zod 契約驗證 → 產出版本化 `data/tenders.json` (含 SHA-256) → Vite Production Build → 部署至 GitHub Pages。
+- **資料流轉**：政府電子採購網 (PCC) `dateType=isNow`（不限機關，逐頁擷取）→ GitHub Actions 於平日 Asia/Taipei 每 3 小時定時擷取 → HTML Secure Parser & 機關白名單過濾 & Zod 契約驗證 → 與前一版合併並剪枝超過 30 天的資料，產出版本化 `data/tenders.json` (含 SHA-256) → Vite Production Build → 部署至 GitHub Pages。
 - **零公開 API / 無後端**：已徹底刪除 Express、Server.ts 與 Gemini SDK；瀏覽器僅讀取同源 `data/tenders.json`，不直接發出任何對外 PCC 或 API 請求。
 - **純靜態 Pages 安全**：採純 GitHub Pages 原生安全控制，不掛載 Cloudflare、Vercel、Netlify 或代理服務。
 

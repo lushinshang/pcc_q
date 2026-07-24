@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/schemas/tender-dataset-1.0.0.json",
+  "$id": "https://example.invalid/schemas/tender-dataset-1.1.0.json",
   "title": "TenderDataset",
   "type": "object",
   "additionalProperties": false,
@@ -14,10 +14,14 @@
     "tenders"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "source": { "const": "https://web.pcc.gov.tw/" },
     "queryMode": { "const": "isNow" },
-    "fetchedAt": { "type": "string", "format": "date-time" },
+    "fetchedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "最近一次成功同步時間，非各筆資料各自的擷取時間（資料為 30 天滾動累積）。"
+    },
     "recordCount": { "type": "integer", "minimum": 0 },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "tenders": {
@@ -29,6 +33,7 @@
           "id",
           "name",
           "method",
+          "org",
           "budget",
           "announcedDate",
           "deadlineDate",
@@ -38,6 +43,10 @@
           "id": { "type": "string", "minLength": 1, "maxLength": 120 },
           "name": { "type": "string", "minLength": 1, "maxLength": 500 },
           "method": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "org": {
+            "type": "string",
+            "description": "以機關名稱比對收斂到白名單類別（含所有下轄單位），非原始 PCC 機關代碼。"
+          },
           "budget": {
             "type": "integer",
             "minimum": 0,

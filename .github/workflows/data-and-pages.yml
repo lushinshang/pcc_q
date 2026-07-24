@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "17 8-20 * * 1-5"
+    - cron: "0 0,3,6,9,12,15,18,21 * * 1-5"
       timezone: Asia/Taipei
   workflow_dispatch:
 

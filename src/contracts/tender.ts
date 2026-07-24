@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const SCHEMA_VERSION = "1.0.0" as const;
+import { ORG_LABELS } from "./orgWhitelist";
+
+export const SCHEMA_VERSION = "1.1.0" as const;
 export const PCC_ORIGIN = "https://web.pcc.gov.tw" as const;
 export const PCC_SOURCE = `${PCC_ORIGIN}/` as const;
 export const QUERY_MODE = "isNow" as const;
@@ -111,6 +113,7 @@ export const TenderSchema = z
     id: z.string().transform((value) => sanitizeText(value, "id")),
     name: z.string().transform((value) => sanitizeText(value, "name")),
     method: z.string().transform((value) => sanitizeText(value, "method")),
+    org: z.enum(ORG_LABELS),
     budget: z.number().int().nonnegative(),
     announcedDate: z
       .string()

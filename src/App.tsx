@@ -11,8 +11,16 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { DEFAULT_ORG_LABEL, ORG_LABELS } from "./contracts/orgWhitelist";
 import type { Tender, TenderDataset } from "./contracts/tender";
 import { loadTenderDataset } from "./services/tenderService";
+import {
+  DATE_RANGE_FILTERS,
+  DATE_RANGE_LABELS,
+  DEFAULT_DATE_RANGE_FILTER,
+  matchesDateRange,
+  type DateRangeFilter,
+} from "./utils/dateRange";
 import { getDatasetFreshness } from "./utils/freshness";
 
 const CHART_COLORS = [
@@ -59,6 +67,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [methodFilter, setMethodFilter] = useState("ALL");
+  const [orgFilter, setOrgFilter] = useState<string>(DEFAULT_ORG_LABEL);
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>(
+    DEFAULT_DATE_RANGE_FILTER,
+  );
   const initialLoadStarted = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -95,10 +107,12 @@ export default function App() {
           tender.id.toLocaleLowerCase("zh-TW").includes(normalizedSearch);
         return (
           matchesText &&
-          (methodFilter === "ALL" || tender.method === methodFilter)
+          (methodFilter === "ALL" || tender.method === methodFilter) &&
+          tender.org === orgFilter &&
+          matchesDateRange(tender.announcedDate, dateRangeFilter)
         );
       }),
-    [methodFilter, normalizedSearch, tenders],
+    [dateRangeFilter, methodFilter, normalizedSearch, orgFilter, tenders],
   );
 
   const statistics = useMemo(() => {
@@ -335,6 +349,36 @@ export default function App() {
                       placeholder="輸入案名或案號"
                     />
                   </span>
+                </label>
+                <label>
+                  <span>機關</span>
+                  <select
+                    value={orgFilter}
+                    onChange={(event) => {
+                      setOrgFilter(event.target.value);
+                    }}
+                  >
+                    {ORG_LABELS.map((org) => (
+                      <option key={org} value={org}>
+                        {org}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>日期範圍</span>
+                  <select
+                    value={dateRangeFilter}
+                    onChange={(event) => {
+                      setDateRangeFilter(event.target.value as DateRangeFilter);
+                    }}
+                  >
+                    {DATE_RANGE_FILTERS.map((range) => (
+                      <option key={range} value={range}>
+                        {DATE_RANGE_LABELS[range]}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   <span>招標方式</span>

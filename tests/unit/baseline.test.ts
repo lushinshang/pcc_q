@@ -2,6 +2,9 @@ import {
   assertNoLargeSameDayDrop,
   buildPreviousPagesDataUrl,
   loadPreviousPagesDataset,
+  MAX_BASELINE_BYTES,
+  mergeTenders,
+  pruneOlderThanRollingWindow,
 } from "../../scripts/lib/baseline";
 import { createTenderDataset } from "../../scripts/lib/dataset";
 
@@ -9,6 +12,7 @@ const tender = {
   id: "A",
   name: "測試標案",
   method: "公開招標",
+  org: "國防部",
   budget: 1,
   announcedDate: "2026-07-24",
   deadlineDate: "2026-08-01",
@@ -119,7 +123,7 @@ describe("REQ-D-003/004 previous deployment baseline", () => {
       new Response("{}", {
         headers: {
           "content-type": "application/json",
-          "content-length": String(2 * 1024 * 1024 + 1),
+          "content-length": String(MAX_BASELINE_BYTES + 1),
         },
       }),
     );
@@ -128,7 +132,7 @@ describe("REQ-D-003/004 previous deployment baseline", () => {
     ).rejects.toThrow(/大小上限/);
 
     const streamedLarge = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response("x".repeat(2 * 1024 * 1024 + 1), {
+      new Response("x".repeat(MAX_BASELINE_BYTES + 1), {
         headers: { "content-type": "application/json" },
       }),
     );
@@ -145,5 +149,33 @@ describe("REQ-D-003/004 previous deployment baseline", () => {
     await expect(
       loadPreviousPagesDataset("owner/project", invalidHash),
     ).rejects.toThrow(/SHA-256/);
+  });
+
+  it("BASE-T-007 prunes tenders older than the rolling window using the Taipei calendar date", () => {
+    const now = new Date("2026-07-25T04:00:00Z").getTime(); // 2026-07-25 12:00 Asia/Taipei
+    const fresh = { ...tender, id: "FRESH", announcedDate: "2026-06-25" };
+    const stale = { ...tender, id: "STALE", announcedDate: "2026-06-24" };
+    const result = pruneOlderThanRollingWindow([fresh, stale], now, 30);
+    expect(result).toEqual([fresh]);
+  });
+
+  it("BASE-T-008 merges previous and incoming tenders, deduplicating by id/date/link with incoming winning", () => {
+    const previousOnly = { ...tender, id: "OLD-ONLY" };
+    const overwritten = { ...tender, id: "SHARED", budget: 1 };
+    const overwrite = { ...tender, id: "SHARED", budget: 999 };
+    const incomingOnly = { ...tender, id: "NEW-ONLY" };
+
+    const merged = mergeTenders(
+      [previousOnly, overwritten],
+      [overwrite, incomingOnly],
+    );
+
+    expect(merged).toHaveLength(3);
+    expect(merged.find((t) => t.id === "SHARED")?.budget).toBe(999);
+    expect(merged.map((t) => t.id).sort()).toEqual([
+      "NEW-ONLY",
+      "OLD-ONLY",
+      "SHARED",
+    ]);
   });
 });

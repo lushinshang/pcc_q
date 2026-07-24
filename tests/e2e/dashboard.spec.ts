@@ -89,3 +89,26 @@ test("E2E-T-003 honors CSP and fits the target viewport without horizontal overf
       : "qa/dashboard-mobile.png";
   await page.screenshot({ path: screenshotName, fullPage: true });
 });
+
+test("E2E-T-004 defaults to 國防部 and 當日, and updates results when either filter changes", async ({
+  page,
+}) => {
+  await expect(page.getByRole("combobox", { name: "機關" })).toHaveValue(
+    "國防部",
+  );
+  await expect(page.getByRole("combobox", { name: "日期範圍" })).toHaveValue(
+    "TODAY",
+  );
+
+  const initialCount = await page.getByText(/\d+／\d+ 筆/).textContent();
+
+  await page
+    .getByRole("combobox", { name: "日期範圍" })
+    .selectOption({ label: "一週" });
+  await expect(page.getByText(/\d+／\d+ 筆/)).toBeVisible();
+
+  await page.getByRole("combobox", { name: "機關" }).selectOption("內政部");
+  await expect(page.getByText(/\d+／\d+ 筆/)).toBeVisible();
+  const afterOrgSwitch = await page.getByText(/\d+／\d+ 筆/).textContent();
+  expect(afterOrgSwitch).not.toBe(initialCount);
+});

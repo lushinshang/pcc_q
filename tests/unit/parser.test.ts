@@ -1,10 +1,14 @@
 import { readFile } from "node:fs/promises";
 
-import { parseTenderHtml } from "../../scripts/lib/tenderParser";
+import {
+  MAX_TOTAL_SCANNED_ROWS,
+  parseTenderHtml,
+  parseTenderPages,
+} from "../../scripts/lib/tenderParser";
 
 describe("REQ-D-004 PCC parser fixtures", () => {
-  function row(tenderCell: string, extraCells = 6): string {
-    return `<table><tr class="tb_b_1"><td>x</td><td>x</td><td>${tenderCell}</td>${"<td>x</td>".repeat(Math.max(0, extraCells - 5))}<td>公開招標</td><td>x</td><td>115/07/24</td><td>115/08/07</td><td>1,000</td></tr></table>`;
+  function row(tenderCell: string, extraCells = 6, org = "國防部"): string {
+    return `<table><tr class="tb_b_1"><td>x</td><td>${org}</td><td>${tenderCell}</td>${"<td>x</td>".repeat(Math.max(0, extraCells - 5))}<td>公開招標</td><td>x</td><td>115/07/24</td><td>115/08/07</td><td>1,000</td></tr></table>`;
   }
 
   it("PAR-T-001 extracts validated tenders from the stable fixture", async () => {
@@ -105,5 +109,62 @@ describe("REQ-D-004 PCC parser fixtures", () => {
 
     expect(parseTenderHtml(makeRows(100)).tenders).toHaveLength(100);
     expect(() => parseTenderHtml(makeRows(101))).toThrow(/100 筆上限/);
+  });
+
+  it("PAR-T-009 silently excludes tenders whose org is outside the whitelist without counting them as rejected", () => {
+    const inWhitelist = row(
+      'IN-001 <a href="/prkms/in" title="檢視 標案名稱: 白名單內">檢視</a>',
+      6,
+      "國防部",
+    );
+    const outsideWhitelist = row(
+      'OUT-001 <a href="/prkms/out" title="檢視 標案名稱: 白名單外">檢視</a>',
+      6,
+      "某某地方合作社",
+    );
+    const result = parseTenderHtml(`${inWhitelist}${outsideWhitelist}`);
+
+    expect(result.scannedRows).toBe(2);
+    expect(result.tenders).toHaveLength(1);
+    expect(result.tenders[0]?.org).toBe("國防部");
+    expect(result.rejectedRows).toEqual([]);
+  });
+
+  it("PAR-T-010 combines multiple pages and offsets rejected row numbers across pages", () => {
+    const pageOne = row(
+      'PAGE1-OK <a href="/prkms/p1" title="檢視 標案名稱: 第一頁">檢視</a>',
+    );
+    const pageTwoOk = row(
+      'PAGE2-OK <a href="/prkms/p2" title="檢視 標案名稱: 第二頁">檢視</a>',
+    );
+    const pageTwoBad = row("PAGE2-BAD plain text");
+    const result = parseTenderPages([pageOne, `${pageTwoOk}${pageTwoBad}`]);
+
+    expect(result.scannedRows).toBe(3);
+    expect(result.tenders).toHaveLength(2);
+    expect(result.tenders.map((tender) => tender.id)).toEqual([
+      "PAGE1-OK",
+      "PAGE2-OK",
+    ]);
+    // page two's second row is scanned row #3 overall, not row #2 within its own page.
+    expect(result.rejectedRows).toHaveLength(1);
+    expect(result.rejectedRows[0]?.row).toBe(3);
+    expect(result.rejectedRows[0]?.reason).toMatch(/缺少標案連結/);
+  });
+
+  it("PAR-T-011 fails closed when the combined multi-page row count exceeds the safety cap", () => {
+    const makeFullPage = (prefix: string) =>
+      Array.from({ length: 100 }, (_, index) =>
+        row(
+          `${prefix}-${String(index)} <a href="/prkms/${prefix}-${String(index)}" title="檢視 標案名稱: ${prefix} ${String(index)}">檢視</a>`,
+        ),
+      ).join("");
+
+    const pageCount = Math.ceil(MAX_TOTAL_SCANNED_ROWS / 100) + 1;
+    const pages = Array.from({ length: pageCount }, (_, index) =>
+      makeFullPage(`P${String(index)}`),
+    );
+
+    expect(() => parseTenderPages(pages)).toThrow(/合計掃描列數超過/);
   });
 });

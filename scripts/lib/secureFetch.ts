@@ -14,7 +14,7 @@ export function buildPccQueryUrl(): URL {
     isLogIn: "N",
     level_1: "on",
     orgName: "",
-    orgId: "3.5",
+    orgId: "",
     tenderName: "",
     tenderId: "",
     tenderType: "TENDER_DECLARATION",
@@ -65,11 +65,37 @@ export interface FetchPccOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxBytes?: number;
+  url?: URL;
+  cookie?: string;
+}
+
+export interface FetchPccPageResult {
+  html: string;
+  cookie: string | undefined;
+}
+
+function mergeCookies(
+  existingCookie: string | undefined,
+  setCookieHeaders: string[],
+): string | undefined {
+  if (setCookieHeaders.length === 0) return existingCookie;
+  const jar = new Map<string, string>();
+  for (const pair of (existingCookie ?? "").split(";")) {
+    const [name, ...rest] = pair.trim().split("=");
+    if (name && rest.length > 0) jar.set(name, rest.join("="));
+  }
+  for (const header of setCookieHeaders) {
+    const [name, ...rest] = (header.split(";")[0] ?? "").trim().split("=");
+    if (name && rest.length > 0) jar.set(name, rest.join("="));
+  }
+  return [...jar.entries()]
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
 }
 
 export async function fetchPccHtml(
   options: FetchPccOptions = {},
-): Promise<string> {
+): Promise<FetchPccPageResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
@@ -79,7 +105,7 @@ export async function fetchPccHtml(
   }, timeoutMs);
 
   try {
-    const response = await fetchImpl(buildPccQueryUrl(), {
+    const response = await fetchImpl(options.url ?? buildPccQueryUrl(), {
       method: "GET",
       redirect: "manual",
       credentials: "omit",
@@ -90,6 +116,7 @@ export async function fetchPccHtml(
         "Cache-Control": "no-cache",
         "User-Agent":
           "MOD-Tender-Dashboard/1.0 (+GitHub Actions static data build)",
+        ...(options.cookie ? { Cookie: options.cookie } : {}),
       },
     });
 
@@ -127,7 +154,11 @@ export async function fetchPccHtml(
       chunk = await reader.read();
     }
     html += decoder.decode();
-    return html;
+    const setCookieHeaders =
+      typeof response.headers.getSetCookie === "function"
+        ? response.headers.getSetCookie()
+        : [];
+    return { html, cookie: mergeCookies(options.cookie, setCookieHeaders) };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error(`PCC 擷取超過 ${String(timeoutMs)}ms`, { cause: error });

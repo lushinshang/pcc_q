@@ -100,7 +100,7 @@ describe("REQ-S-004/005/008 workflow policy", () => {
 
   it("WF-T-004 schedules weekday Asia/Taipei refreshes and permits manual runs", async () => {
     const { raw, value } = await workflow("data-and-pages.yml");
-    expect(raw).toMatch(/cron:\s+["']17 8-20 \* \* 1-5["']/);
+    expect(raw).toMatch(/cron:\s+["']0 0,3,6,9,12,15,18,21 \* \* 1-5["']/);
     expect(raw).toContain("timezone: Asia/Taipei");
     expect(value.on).toHaveProperty("workflow_dispatch");
     expect(value.jobs?.build?.env).toEqual({

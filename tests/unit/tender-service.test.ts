@@ -4,7 +4,7 @@ import {
 } from "../../src/services/tenderService";
 
 const emptyDataset = {
-  schemaVersion: "1.0.0" as const,
+  schemaVersion: "1.1.0" as const,
   source: "https://web.pcc.gov.tw/" as const,
   queryMode: "isNow" as const,
   fetchedAt: "2026-07-24T08:17:00+08:00",
