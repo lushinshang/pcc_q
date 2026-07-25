@@ -1,6 +1,6 @@
 # 國防部當日公告標案儀表板
 
-以「方案 A」運作的純靜態 React／Vite 儀表板。GitHub Actions 依 `dateType=isNow`（不限機關，逐頁擷取全國當日公告）擷取政府電子採購網，經固定來源限制、HTML parser、機關白名單過濾、Zod 契約與 SHA-256 驗證後，把過去 30 天累積的資料發布到 GitHub Pages。瀏覽器只讀取同源 `data/tenders.json`，並可用機關（預設國防部）與日期範圍（當日／一週／一個月）在本地端篩選，不會直接存取政府採購網。
+以「方案 A」運作的純靜態 React／Vite 儀表板。GitHub Actions 不限機關逐頁擷取政府電子採購網，例行查詢用 `dateType=isNow`（當日），首次執行（無可用前一版基準）改用 `dateType=isDate` 一次回填過去 30 天（見 [ADR-002](docs/specs/001-pages-migration/adr-first-run-backfill.md)）。資料經固定來源限制、HTML parser、機關白名單過濾、Zod 契約與 SHA-256 驗證後，與前一版合併、剪枝超過 30 天的舊記錄，發布到 GitHub Pages。瀏覽器只讀取同源 `data/tenders.json`，可用機關（預設國防部）與日期範圍（當日／一週／一個月，預設一週）在本地端篩選，結果依公告日期新到舊排序；頁面另有可展開的說明面板列出完整機關白名單與同步排程。瀏覽器不會直接存取政府採購網。
 
 本站為非官方公開資料整理，內容以政府電子採購網公告為準。不使用 Gemini 或其他生成式 AI API，也不需要任何 API key。
 
@@ -22,7 +22,7 @@ npm run dev
 npm run fetch:data
 ```
 
-這是獨立 live smoke／資料產生指令。來源 URL 由程式固定建立，不接受 CLI 或環境變數傳入完整 URL。成功時以原子 rename 更新 JSON；逾時、redirect、錯誤 Content-Type、超量、零有效資料、拒絕比例過高、schema/hash 失敗或同日筆數較最近 Pages 版本下降超過 50% 時，會以非零狀態停止。
+這是獨立 live smoke／資料產生指令。來源 URL 由程式固定建立，不接受 CLI 或環境變數傳入完整 URL。沒有可用前一版基準時（真的第一次執行，或前一版累積 0 筆／schema 不相容）會改用日期區間查詢一次回填過去 30 天，實測約需 20 分鐘且逐頁遞增，回填失敗時自動退回只抓當日；平常則只查當日並與前一版合併、剪枝超過 30 天的舊記錄。成功時以原子 rename 更新 JSON；逾時（含重試後）、redirect、錯誤 Content-Type、超量、拒絕比例過高、schema/hash 失敗、分頁連結跳出固定路徑，或同日新增筆數較最近 Pages 版本下降超過 50% 時，會以非零狀態停止。
 
 GitHub Actions 只在工作目錄產生資料並包入 Pages artifact，不會自動 commit 資料回 `main`。
 
@@ -48,7 +48,11 @@ npm audit --audit-level=high
 
 ## GitHub Pages 部署
 
-`.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 每 3 小時（`0,3,6,9,12,15,18,21` 點）執行。只有 fetch、format、lint、strict typecheck、coverage、workflow policy、build、HTML validation、dist scan、E2E 與 audit 全部通過後，deploy job 才能取得 `pages: write` 與 `id-token: write`，並發布只含 `dist` 的 artifact。
+`.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 每 3 小時（`0,3,6,9,12,15,18,21` 點）執行，分三個 job：
+
+1. `fetch-data`（逾時 60 分鐘）：只做資料擷取與驗證，把 `public/data/tenders.json` 以 artifact 交給下一個 job；首次 30 天回填可能需要約 20 分鐘，因此獨立出來，不擠壓下面的品質閘門時限。
+2. `build`（逾時 25 分鐘，`needs: fetch-data`）：下載該 artifact 後執行 format、lint、strict typecheck、coverage、workflow policy、build、HTML validation、dist scan、E2E 與 audit，全部通過才把只含 `dist` 的 artifact 交出去。
+3. `deploy`（`needs: build`）：只有這個 job 取得 `pages: write` 與 `id-token: write`，發布到 GitHub Pages。
 
 Repository 的 Pages Source 必須設為 **GitHub Actions**。部署 environment 固定為 `github-pages`，建議在 GitHub 設定 environment protection rules。CI、dependency review、CodeQL 與 Dependabot 設定均位於 `.github/`；所有 Actions 均鎖定已核對的完整 commit SHA。
 
@@ -66,7 +70,7 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 ### 1. 架構改造與安全邊界
 
-- **資料流轉**：政府電子採購網 (PCC) `dateType=isNow`（不限機關，逐頁擷取）→ GitHub Actions 於平日 Asia/Taipei 每 3 小時定時擷取 → HTML Secure Parser & 機關白名單過濾 & Zod 契約驗證 → 與前一版合併並剪枝超過 30 天的資料，產出版本化 `data/tenders.json` (含 SHA-256) → Vite Production Build → 部署至 GitHub Pages。
+- **資料流轉**：政府電子採購網 (PCC)，不限機關逐頁擷取（例行 `isNow` 當日／首次回填 `isDate` 過去 30 天）→ GitHub Actions 於平日 Asia/Taipei 每 3 小時定時擷取 → HTML Secure Parser & 機關白名單過濾 & Zod 契約驗證 → 與前一版合併並剪枝超過 30 天的資料，產出版本化 `data/tenders.json` (含 SHA-256) → Vite Production Build → 部署至 GitHub Pages。
 - **零公開 API / 無後端**：已徹底刪除 Express、Server.ts 與 Gemini SDK；瀏覽器僅讀取同源 `data/tenders.json`，不直接發出任何對外 PCC 或 API 請求。
 - **純靜態 Pages 安全**：採純 GitHub Pages 原生安全控制，不掛載 Cloudflare、Vercel、Netlify 或代理服務。
 
@@ -75,7 +79,7 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 - **目標 Repository**：[lushinshang/pcc_q](https://github.com/lushinshang/pcc_q) (Public)
 - **Pull Request**：[PR #1 (feat/pages-scheme-a -> main)](https://github.com/lushinshang/pcc_q/pull/1) - head commit 之 Quality and security gates、Dependency review、CodeQL 分析（javascript-typescript／actions）均為 success 後無衝突合併；main 分支目前未啟用 branch protection，因此這些 checks 屬於 CI 通過紀錄，非 GitHub 強制的 required status checks。
 - **安全檢查通過項目**：
-  - **CI / Quality & Security Gates**：ESLint 0 warnings、TypeScript Strict 0 errors、Vitest 74/74 測試全過 (Coverage: Stmts 97.98%, Lines 99.28%)。
+  - **CI / Quality & Security Gates**：ESLint 0 warnings、TypeScript Strict 0 errors、Vitest 110/110 測試全過 (Coverage: Stmts 98.13%, Branches 93.82%, Lines 98.96%)。
   - **CodeQL 分析**：`javascript-typescript` 與 `actions` 雙軌分析通過，無未處理之 High/Critical 漏洞。
   - **Dependency Review**：已啟用 Dependency Graph 並完成依賴分析，0 vulnerabilities。
   - **Git History Secret Scan**：Gitleaks v8.30.1 於 `npm run security:history`（CI 每次 push 皆執行）完成全歷史掃描，零發現 (no leaks found)；掃描涵蓋的 commit 數會隨每次 push 增加，請以該次 CI run 的實際輸出為準，不在此固定數字。
@@ -83,27 +87,28 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 ### 3. Production 部署與 Live 驗收數據
 
 - **Production URL**：[https://lushinshang.github.io/pcc_q/](https://lushinshang.github.io/pcc_q/)
-- **Deployment Run URL**：[https://github.com/lushinshang/pcc_q/actions/runs/30103033703](https://github.com/lushinshang/pcc_q/actions/runs/30103033703)
-- **最新成功部署 Commit SHA**：`14e7bcb33980809958c8cc71eef153aa932ad285`（此為 Deployment Run URL 對應的 commit；main HEAD 可能領先於此，請以 `gh api repos/lushinshang/pcc_q/deployments` 查詢的最新 deployment 為準）
-- **最後驗收時間**：2026-07-24 23:00 (Asia/Taipei)
+- **Deployment Run URL**：[https://github.com/lushinshang/pcc_q/actions/runs/30152099903](https://github.com/lushinshang/pcc_q/actions/runs/30152099903)
+- **最新成功部署 Commit SHA**：`fe41d054006399f5a5760e2df82c2c77c7762382`（此為 Deployment Run URL 對應的 commit；main HEAD 可能領先於此，請以 `gh api repos/lushinshang/pcc_q/deployments` 查詢的最新 deployment 為準）
+- **最後驗收時間**：2026-07-25 17:04 (Asia/Taipei)
 
-#### 13 項 Live Production 實體驗收對照表
+#### 14 項 Live Production 實體驗收對照表
 
-| 驗收項目                       | 驗收規範細節                                                     | Live 測試結果 | 證據 / 數據                                           |
-| :----------------------------- | :--------------------------------------------------------------- | :------------ | :---------------------------------------------------- |
-| **靜態資產載入**               | HTML、JS、CSS 及 `data/tenders.json` 回應 200 OK                 | **通過**      | 無 HTTP 錯誤或 Mixed content                          |
-| **Base Path 正確性**           | Project Pages 資產載入路徑前綴為 `/pcc_q/`                       | **通過**      | `dist` 靜態路徑完美對齊                               |
-| **真實標案資料**               | 成功呈現當日公告資料集（包含正確 `fetchedAt` 與 `recordCount`）  | **通過**      | 當日擷取 `recordCount: 5` 筆，SHA-256 驗證比對一致    |
-| **查詢模式驗證**               | `queryMode` 為 `isNow`（當日公告）                               | **通過**      | 正確顯示「當日公告 (isNow)」狀態                      |
-| **初始與網址搜尋**             | 初始搜尋固定為空；網址包含 `?q=綜合任務` 仍安全顯示當日全數資料  | **通過**      | 搜尋條件正確解耦與獨立                                |
-| **新鮮度控管**                 | 資料在 2 小時新鮮度內顯示綠色新鮮標誌；超過 2 小時提示警示       | **通過**      | 顯示「資料在兩小時新鮮度內」                          |
-| **同源請求限制**               | 頁面重新載入與點擊重新載入僅發出同源 `data/tenders.json` 請求    | **通過**      | 網路監聽 0 筆 `/api/tenders` 或 `web.pcc.gov.tw` 請求 |
-| **外部連結安全**               | 點擊標案開啟政府採購網連結均具備 `rel="noopener noreferrer"`     | **通過**      | Playwright DOM 檢查 100% 符合                         |
-| **無障礙規範 (a11y)**          | 符合 WCAG / axe-core 規範                                        | **通過**      | axe-core 檢測 serious / critical 違規數為 0           |
-| **跨裝置響應式與無溢位**       | 桌機 1440×1000 與手機 390×844 Viewport 均零水平溢位              | **通過**      | Playwright E2E 檢測 `scrollWidth == clientWidth` 通過 |
-| **CSP 安全政策**               | 依據 Content-Security-Policy meta 規則運作                       | **通過**      | Console 0 筆 CSP violation 違規警告                   |
-| **Production Artifact 乾淨度** | Pages Artifact 僅含 `dist` 內容                                  | **通過**      | 4 個建置檔案，無 Source Map / Fixture / `.env` / 秘密 |
-| **維護手冊同步**               | 驗收結果已完整同步至 `docs/specs/001-pages-migration/runbook.md` | **通過**      | Runbook 已完成即時紀錄                                |
+| 驗收項目                       | 驗收規範細節                                                                    | Live 測試結果 | 證據 / 數據                                           |
+| :----------------------------- | :------------------------------------------------------------------------------ | :------------ | :---------------------------------------------------- |
+| **靜態資產載入**               | HTML、JS、CSS 及 `data/tenders.json` 回應 200 OK                                | **通過**      | 無 HTTP 錯誤或 Mixed content                          |
+| **Base Path 正確性**           | Project Pages 資產載入路徑前綴為 `/pcc_q/`                                      | **通過**      | `dist` 靜態路徑完美對齊                               |
+| **真實標案資料**               | 成功呈現 30 天滾動累積資料集（包含正確 `fetchedAt` 與 `recordCount`）           | **通過**      | 累積 `recordCount: 15892` 筆，SHA-256 驗證比對一致    |
+| **查詢模式驗證**               | 例行查詢 `queryMode` 為 `isNow`；首次回填為 `isDate`                            | **通過**      | 正確顯示「當日公告 (isNow)」狀態                      |
+| **預設篩選與網址搜尋**         | 預設機關＝國防部、日期範圍＝一週；網址包含 `?q=綜合任務` 仍安全顯示預設篩選結果 | **通過**      | 實測顯示「234／15892 筆」，搜尋條件正確解耦與獨立     |
+| **排序**                       | 標案列表依公告日期由新到舊排序                                                  | **通過**      | Playwright DOM 檢查最新公告日期排在最前               |
+| **新鮮度控管**                 | 資料在 2 小時新鮮度內顯示綠色新鮮標誌；超過 2 小時提示警示                      | **通過**      | 顯示「資料在兩小時新鮮度內」                          |
+| **同源請求限制**               | 頁面重新載入與點擊重新載入僅發出同源 `data/tenders.json` 請求                   | **通過**      | 網路監聽 0 筆 `/api/tenders` 或 `web.pcc.gov.tw` 請求 |
+| **外部連結安全**               | 點擊標案開啟政府採購網連結均具備 `rel="noopener noreferrer"`                    | **通過**      | Playwright DOM 檢查 100% 符合                         |
+| **無障礙規範 (a11y)**          | 符合 WCAG / axe-core 規範                                                       | **通過**      | axe-core 檢測 serious / critical 違規數為 0           |
+| **跨裝置響應式與無溢位**       | 桌機 1440×1000 與手機 390×844 Viewport 均零水平溢位                             | **通過**      | Playwright E2E 檢測 `scrollWidth == clientWidth` 通過 |
+| **CSP 安全政策**               | 依據 Content-Security-Policy meta 規則運作                                      | **通過**      | Console 0 筆 CSP violation 違規警告                   |
+| **Production Artifact 乾淨度** | Pages Artifact 僅含 `dist` 內容                                                 | **通過**      | 4 個建置檔案，無 Source Map / Fixture / `.env` / 秘密 |
+| **維護手冊同步**               | 驗收結果已完整同步至 `docs/specs/001-pages-migration/runbook.md`                | **通過**      | Runbook 已完成即時紀錄                                |
 
 ## 故障處理
 
@@ -120,4 +125,10 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 ## 規格
 
-權威設計與需求位於 [docs/specs/001-pages-migration](docs/specs/001-pages-migration/)，包含 requirements、Software Design Description、threat model、JSON Schema、test plan、traceability、ADR 與 runbook。
+權威設計與需求位於 [docs/specs/001-pages-migration](docs/specs/001-pages-migration/)，包含 requirements、Software Design Description、threat model、JSON Schema、test plan、traceability、[ADR-001（查詢模式）](docs/specs/001-pages-migration/adr-query-mode.md)、[ADR-002（首次執行日期區間回填）](docs/specs/001-pages-migration/adr-first-run-backfill.md) 與 runbook。
+
+## 目錄結構
+
+- `src/`、`scripts/`、`tests/`、`config/`、`public/`、`docs/`：專案本體（程式碼、測試、規格文件）。
+- `qa/`：E2E 測試產生的最新視覺驗證截圖（`npm run test:e2e` 會覆寫）。
+- `_archive/`：與目前專案執行無關、僅供歷史參考的檔案（例如最初的 SDD/TDD/security 提案文件），不被任何 script、test 或 CI 引用。
