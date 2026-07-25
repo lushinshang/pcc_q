@@ -17,7 +17,12 @@ export default defineConfig({
         branches: 85,
         functions: 90,
       },
-      include: ["src/**/*.{ts,tsx}", "config/**/*.ts", "scripts/lib/**/*.ts"],
+      include: [
+        "src/**/*.{ts,tsx}",
+        "config/**/*.ts",
+        "scripts/fetch-tenders.ts",
+        "scripts/lib/**/*.ts",
+      ],
       exclude: ["**/*.d.ts", "src/main.tsx"],
     },
   },
