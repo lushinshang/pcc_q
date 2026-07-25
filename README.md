@@ -79,7 +79,7 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 - **目標 Repository**：[lushinshang/pcc_q](https://github.com/lushinshang/pcc_q) (Public)
 - **Pull Request**：[PR #1 (feat/pages-scheme-a -> main)](https://github.com/lushinshang/pcc_q/pull/1) - head commit 之 Quality and security gates、Dependency review、CodeQL 分析（javascript-typescript／actions）均為 success 後無衝突合併；main 分支目前未啟用 branch protection，因此這些 checks 屬於 CI 通過紀錄，非 GitHub 強制的 required status checks。
 - **安全檢查通過項目**：
-  - **CI / Quality & Security Gates**：ESLint 0 warnings、TypeScript Strict 0 errors、Vitest 110/110 測試全過 (Coverage: Stmts 98.13%, Branches 93.82%, Lines 98.96%)。
+  - **CI / Quality & Security Gates**：ESLint 0 warnings、TypeScript Strict 0 errors、Vitest 122/122 測試全過 (Coverage: Stmts 95.77%, Branches 92.28%, Functions 96.03%, Lines 96.27%)。
   - **CodeQL 分析**：`javascript-typescript` 與 `actions` 雙軌分析通過，無未處理之 High/Critical 漏洞。
   - **Dependency Review**：已啟用 Dependency Graph 並完成依賴分析，0 vulnerabilities。
   - **Git History Secret Scan**：Gitleaks v8.30.1 於 `npm run security:history`（CI 每次 push 皆執行）完成全歷史掃描，零發現 (no leaks found)；掃描涵蓋的 commit 數會隨每次 push 增加，請以該次 CI run 的實際輸出為準，不在此固定數字。
@@ -110,6 +110,20 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 | **Production Artifact 乾淨度** | Pages Artifact 僅含 `dist` 內容                                                 | **通過**      | 4 個建置檔案，無 Source Map / Fixture / `.env` / 秘密 |
 | **維護手冊同步**               | 驗收結果已完整同步至 `docs/specs/001-pages-migration/runbook.md`                | **通過**      | Runbook 已完成即時紀錄                                |
 
+### 4. 紅隊資安複查與改善紀錄（OPERATION LEDGERWATCH）
+
+Production 上線後另做了一輪獨立紅隊視角複查，找到三項違反本專案「任何異常都該 fail closed」核心原則的具體缺口——不是臆測，都附檔案行號與可重現步驟。完整測試計畫、攻擊面地圖與逐項改善規劃（依 SDD 先定義設計變更、TDD 先寫失敗測試再實作的既有慣例）見 [紅隊資安測試計畫](docs/security/red-team-test-plan.html)。
+
+| ID     | 缺口                                                                                                                                | 嚴重度 | 修復內容                                                                                                                  | 狀態         |
+| :----- | :---------------------------------------------------------------------------------------------------------------------------------- | :----- | :------------------------------------------------------------------------------------------------------------------------ | :----------- |
+| RT-001 | 確認零筆判斷用樸素子字串比對，標記文字塞進 `<script>`／註解也會被誤判為合法零筆                                                     | HIGH   | 改為 `td.tb_b2` 內容標記與 `#pagebanner` 顯示「共有 0 筆資料」兩項 DOM 證據須同時成立                                     | **VERIFIED** |
+| RT-002 | `fetch-tenders.ts` 的 bootstrap／fallback 核心流程完全沒有測試與 coverage，正是先前「空資料集導致回填永遠不觸發」事故未被攔下的根因 | HIGH   | 抽出可注入依賴的 `runFetchPipeline()`，CLI 與 exit code 邏輯分離；補齊 9 項情境測試，含「雙重失敗不寫檔」原本未定義的邊界 | **VERIFIED** |
+| RT-003 | 分頁擷取跑滿 `maxPages` 上限時靜默回傳，即使最後一頁仍有下一頁連結                                                                  | MEDIUM | 迴圈跑滿上限但仍偵測到下一頁時改為拋錯 fail closed，交由既有 bootstrap fallback 自動退回例行查詢                          | **VERIFIED** |
+
+修復由 Codex CLI 在沙箱環境（無對外網路、未觸發 GitHub Actions、未連線 PCC）依既定優先序 RT-002 → RT-001 → RT-003 完成，每項獨立 commit；完成後獨立重新執行全部本機品質閘門驗證（不僅採信執行方回報），結果一致：Vitest 122/122、Playwright E2E 8/8、ESLint／TypeScript／build／HTML validation 全過、`security:repo` 88 檔案零發現、`security:dist` 4 檔案零發現、Gitleaks 30 commits 零洩漏、`npm audit --audit-level=high` 0 vulnerabilities；三項修復的程式碼改動亦逐一人工複核，確認邏輯與測試計畫規劃一致。
+
+**尚未完成**：三項修復皆涉及擷取管線邏輯，需再一次 `workflow_dispatch` 手動觸發，對真實 PCC 站驗證行為正確，不能只憑本機測試通過就假設沒問題——這與 ADR-002 上線時的既有教訓一致。
+
 ## 故障處理
 
 - 擷取失敗：不要略過驗證或手動發布空資料；既有 Pages deployment 會保留。
@@ -128,6 +142,8 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 權威設計與需求位於 [docs/specs/001-pages-migration](docs/specs/001-pages-migration/)，包含 requirements、Software Design Description、threat model、JSON Schema、test plan、traceability、[ADR-001（查詢模式）](docs/specs/001-pages-migration/adr-query-mode.md)、[ADR-002（首次執行日期區間回填）](docs/specs/001-pages-migration/adr-first-run-backfill.md) 與 runbook。
 
 產品／系統分析層級的正式文件（PRD／SRS／SDD／STP）位於 [docs/pm](docs/pm/)，補齊產品層決策與正式文件結構，逐條需求與測試 ID 仍以上述 `docs/specs` 為權威來源，詳見 [docs/pm/README.md](docs/pm/README.md) 的文件關係說明。
+
+紅隊資安測試計畫與改善規劃位於 [docs/security/red-team-test-plan.html](docs/security/red-team-test-plan.html)，見「執行進度與 Production 部署驗收報告」第 4 節。
 
 ## 目錄結構
 
