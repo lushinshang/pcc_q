@@ -7,7 +7,7 @@
 ## 系統流程
 
 ```mermaid
-flowchart LR
+flowchart TD
     classDef ext fill:#f7cfcf,stroke:#7a1f1f,color:#1a1a1a,stroke-width:1.5px
     classDef core fill:#c7ebe4,stroke:#0b6b5c,color:#0b2b26,stroke-width:1.5px
     classDef store fill:#ffe1a8,stroke:#8a5a00,color:#3a2600,stroke-width:1.5px
@@ -72,7 +72,7 @@ npm audit --audit-level=high
 `.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 每 3 小時（`0,3,6,9,12,15,18,21` 點）執行，分三個 job：
 
 ```mermaid
-flowchart TB
+flowchart TD
     classDef trigger fill:#d8d3f0,stroke:#4b3b8f,color:#241a4d,stroke-width:1.5px
     classDef job fill:#c7ebe4,stroke:#0b6b5c,color:#0b2b26,stroke-width:1.5px
     classDef perm fill:#ffe1a8,stroke:#8a5a00,color:#3a2600,stroke-width:1.5px
