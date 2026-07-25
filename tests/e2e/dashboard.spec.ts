@@ -16,6 +16,19 @@ async function hasPublishedTenders(page: Page): Promise<boolean> {
   return (await page.getByText(/\d+／\d+ 筆/).count()) > 0;
 }
 
+// 累積資料集本身可能有上千筆，但預設篩選（機關＝國防部、日期範圍＝當日）套用後，
+// 當天剛好沒有新公告時篩選結果一樣會是零筆，畫面顯示「找不到符合篩選條件的標案」
+// 而不是表格；這跟「整個資料集是零筆」是兩種不同狀態，要分開判斷。
+async function hasFilteredResults(page: Page): Promise<boolean> {
+  const summary = await page
+    .getByText(/\d+／\d+ 筆/)
+    .first()
+    .textContent()
+    .catch(() => null);
+  const match = summary ? /(\d+)／(\d+) 筆/.exec(summary) : null;
+  return match !== null && Number(match[1]) > 0;
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("./");
   await waitForAppReady(page);
@@ -54,8 +67,8 @@ test("E2E-T-002 provides text alternatives and no serious accessibility violatio
   ).toBeFocused();
 
   test.skip(
-    !(await hasPublishedTenders(page)),
-    "本次資料集為零筆，表格／連結相關檢查沒有元素可驗證",
+    !(await hasFilteredResults(page)),
+    "預設篩選（國防部／當日）套用後為零筆，表格／連結相關檢查沒有元素可驗證",
   );
 
   await expect(page.getByRole("table")).toHaveCount(
