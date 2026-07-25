@@ -1,12 +1,24 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test.beforeEach(async ({ page }) => {
-  await page.goto("./");
+// 資料集在滾動累積下可能真的是零筆（例如假日或剛跨日還沒有新公告），這是合法狀態；
+// 測試需要能辨識並分別驗證，而不是預設 Production 一定有資料可顯示。
+async function waitForAppReady(page: Page): Promise<void> {
   await expect(
     page.getByRole("heading", { name: "國防部當日公告標案儀表板" }),
   ).toBeVisible();
-  await expect(page.getByText(/\d+／\d+ 筆/)).toBeVisible();
+  await expect(
+    page.getByText(/\d+／\d+ 筆/).or(page.getByText("當日沒有已發布標案資料")),
+  ).toBeVisible();
+}
+
+async function hasPublishedTenders(page: Page): Promise<boolean> {
+  return (await page.getByText(/\d+／\d+ 筆/).count()) > 0;
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("./");
+  await waitForAppReady(page);
 });
 
 test("E2E-T-001 renders the published dataset without browser requests to PCC or an API", async ({
@@ -30,17 +42,27 @@ test("E2E-T-001 renders the published dataset without browser requests to PCC or
 test("E2E-T-002 provides text alternatives and no serious accessibility violations", async ({
   page,
 }) => {
-  await expect(page.getByRole("table")).toHaveCount(
-    test.info().project.name === "desktop" ? 1 : 0,
-  );
-  const progressCount = await page.getByRole("progressbar").count();
-  expect(progressCount).toBeGreaterThan(0);
-
   const results = await new AxeBuilder({ page }).analyze();
   const severe = results.violations.filter(({ impact }) =>
     ["serious", "critical"].includes(impact ?? ""),
   );
   expect(severe).toEqual([]);
+
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("button", { name: "重新載入已發布資料" }),
+  ).toBeFocused();
+
+  test.skip(
+    !(await hasPublishedTenders(page)),
+    "本次資料集為零筆，表格／連結相關檢查沒有元素可驗證",
+  );
+
+  await expect(page.getByRole("table")).toHaveCount(
+    test.info().project.name === "desktop" ? 1 : 0,
+  );
+  const progressCount = await page.getByRole("progressbar").count();
+  expect(progressCount).toBeGreaterThan(0);
 
   const tenderLinks = await page.locator("a.tender-link").evaluateAll((links) =>
     links.map((link) => {
@@ -56,11 +78,6 @@ test("E2E-T-002 provides text alternatives and no serious accessibility violatio
     );
     expect(link.target).toBe("_blank");
   }
-
-  await page.keyboard.press("Tab");
-  await expect(
-    page.getByRole("button", { name: "重新載入已發布資料" }),
-  ).toBeFocused();
 });
 
 test("E2E-T-003 honors CSP and fits the target viewport without horizontal overflow", async ({
@@ -73,7 +90,7 @@ test("E2E-T-003 honors CSP and fits the target viewport without horizontal overf
     }
   });
   await page.reload();
-  await expect(page.getByText(/\d+／\d+ 筆/)).toBeVisible();
+  await waitForAppReady(page);
 
   const overflow = await page.evaluate(
     () =>
@@ -93,6 +110,11 @@ test("E2E-T-003 honors CSP and fits the target viewport without horizontal overf
 test("E2E-T-004 defaults to 國防部 and 當日, and updates results when either filter changes", async ({
   page,
 }) => {
+  test.skip(
+    !(await hasPublishedTenders(page)),
+    "本次資料集為零筆，機關／日期範圍下拉在空狀態下不會渲染",
+  );
+
   await expect(page.getByRole("combobox", { name: "機關" })).toHaveValue(
     "國防部",
   );
