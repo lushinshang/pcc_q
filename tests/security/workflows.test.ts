@@ -18,6 +18,7 @@ interface WorkflowJob {
   permissions?: Record<string, string>;
   environment?: { name?: string } | string;
   steps?: WorkflowStep[];
+  "timeout-minutes"?: number;
 }
 
 interface Workflow {
@@ -76,6 +77,7 @@ describe("REQ-S-004/005/008 workflow policy", () => {
 
   it("WF-T-003 grants Pages and OIDC write only to the deploy job", async () => {
     const { value } = await workflow("data-and-pages.yml");
+    const fetchData = value.jobs?.["fetch-data"];
     const build = value.jobs?.build;
     const deploy = value.jobs?.deploy;
     const configurePages = deploy?.steps?.find((step) =>
@@ -83,12 +85,14 @@ describe("REQ-S-004/005/008 workflow policy", () => {
     );
 
     expect(value.permissions).toEqual({ contents: "read" });
+    expect(fetchData?.permissions).toBeUndefined();
     expect(build?.permissions).toBeUndefined();
     expect(deploy?.permissions).toEqual({
       contents: "read",
       pages: "write",
       "id-token": "write",
     });
+    expect(build?.needs).toContain("fetch-data");
     expect(deploy?.needs).toContain("build");
     expect(deploy?.if).toContain("github.ref == 'refs/heads/main'");
     expect(deploy?.if).toContain("github.event_name != 'pull_request'");
@@ -96,6 +100,15 @@ describe("REQ-S-004/005/008 workflow policy", () => {
     expect(configurePages?.uses).toBe(
       "actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b",
     );
+  });
+
+  it("WF-T-003b gives the first-run backfill job its own extended timeout, separate from the quality-gate job", async () => {
+    const { value } = await workflow("data-and-pages.yml");
+    const fetchData = value.jobs?.["fetch-data"];
+    const build = value.jobs?.build;
+
+    expect(fetchData?.["timeout-minutes"]).toBeGreaterThanOrEqual(60);
+    expect(build?.["timeout-minutes"]).toBeLessThanOrEqual(25);
   });
 
   it("WF-T-004 schedules weekday Asia/Taipei refreshes and permits manual runs", async () => {
@@ -114,7 +127,11 @@ describe("REQ-S-004/005/008 workflow policy", () => {
 
   it("WF-T-005 deploys only after live fetch and every local gate, uploading only dist", async () => {
     const { raw, value } = await workflow("data-and-pages.yml");
+    const fetchSteps = value.jobs?.["fetch-data"]?.steps ?? [];
     const steps = value.jobs?.build?.steps ?? [];
+    const fetchCommands = fetchSteps.flatMap((step) =>
+      step.run ? [step.run] : [],
+    );
     const commands = steps.flatMap((step) => (step.run ? [step.run] : []));
     const checkout = steps.find((step) =>
       step.uses?.startsWith("actions/checkout@"),
@@ -123,7 +140,8 @@ describe("REQ-S-004/005/008 workflow policy", () => {
       step.uses?.startsWith("actions/upload-pages-artifact@"),
     );
 
-    expect(commands).toContain("npm run fetch:data");
+    expect(fetchCommands).toContain("npm run fetch:data");
+    expect(commands).not.toContain("npm run fetch:data");
     expect(commands).toContain("npm run validate:code");
     expect(commands).toContain("npm run security:workflows");
     expect(commands).toContain("npm run workflow:lint");
@@ -138,6 +156,30 @@ describe("REQ-S-004/005/008 workflow policy", () => {
     expect(raw).not.toMatch(/\bgit\s+(?:add|commit|push)\b/);
     expect(steps.indexOf(upload ?? {})).toBeGreaterThan(
       steps.findIndex((step) => step.run === "npm run test:e2e"),
+    );
+  });
+
+  it("WF-T-006 hands the fetched dataset from fetch-data to build via an artifact, not a direct write", async () => {
+    const { value } = await workflow("data-and-pages.yml");
+    const fetchSteps = value.jobs?.["fetch-data"]?.steps ?? [];
+    const buildSteps = value.jobs?.build?.steps ?? [];
+    const uploadArtifact = fetchSteps.find((step) =>
+      step.uses?.startsWith("actions/upload-artifact@"),
+    );
+    const downloadArtifact = buildSteps.find((step) =>
+      step.uses?.startsWith("actions/download-artifact@"),
+    );
+
+    expect(uploadArtifact?.with).toMatchObject({
+      name: "tender-dataset",
+      path: "public/data/tenders.json",
+    });
+    expect(downloadArtifact?.with).toMatchObject({
+      name: "tender-dataset",
+      path: "public/data",
+    });
+    expect(buildSteps.indexOf(downloadArtifact ?? {})).toBeLessThan(
+      buildSteps.findIndex((step) => step.run === "npm run validate:code"),
     );
   });
 });

@@ -17,6 +17,8 @@ export const MAX_TENDER_ROWS_PER_PAGE = 100;
 // 多頁合計安全網：2026-07-24 實測全國當日公告約 1,272 筆，取約 2.3 倍緩衝，
 // 防止不設機關限制後的分頁擷取無限增長或上游異常暴增；非精確科學值，建議上線觀察後再調整。
 export const MAX_TOTAL_SCANNED_ROWS = 3000;
+// 首次執行日期區間回填專用安全網：2026-07-25 實測全國過去 30 天約 23,091 筆，取約 1.7 倍緩衝。
+export const MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP = 40000;
 
 export interface RejectedRow {
   row: number;
@@ -120,6 +122,7 @@ export function parseTenderHtml(html: string): ParseTenderResult {
 
 export function parseTenderPages(
   htmlPages: readonly string[],
+  maxTotalScannedRows = MAX_TOTAL_SCANNED_ROWS,
 ): ParseTenderResult {
   const combined: ParseTenderResult = {
     tenders: [],
@@ -137,9 +140,9 @@ export function parseTenderPages(
       })),
     );
     combined.scannedRows += page.scannedRows;
-    if (combined.scannedRows > MAX_TOTAL_SCANNED_ROWS) {
+    if (combined.scannedRows > maxTotalScannedRows) {
       throw new Error(
-        `多頁合計掃描列數超過 ${String(MAX_TOTAL_SCANNED_ROWS)} 筆安全上限`,
+        `多頁合計掃描列數超過 ${String(maxTotalScannedRows)} 筆安全上限`,
       );
     }
   }

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   MAX_TOTAL_SCANNED_ROWS,
+  MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP,
   parseTenderHtml,
   parseTenderPages,
 } from "../../scripts/lib/tenderParser";
@@ -175,5 +176,25 @@ describe("REQ-D-004 PCC parser fixtures", () => {
     );
 
     expect(() => parseTenderPages(pages)).toThrow(/合計掃描列數超過/);
+  });
+
+  it("PAR-T-012 accepts a custom maxTotalScannedRows override for the bootstrap safety net", () => {
+    const makeFullPage = (prefix: string) =>
+      Array.from({ length: 100 }, (_, index) =>
+        row(
+          `${prefix}-${String(index)} <a href="/prkms/${prefix}-${String(index)}" title="檢視 標案名稱: ${prefix} ${String(index)}">檢視</a>`,
+        ),
+      ).join("");
+
+    // 剛好超過例行上限，但遠低於 bootstrap 上限：例行呼叫會失敗，帶入 bootstrap 上限則放行。
+    const pageCount = Math.ceil(MAX_TOTAL_SCANNED_ROWS / 100) + 1;
+    const pages = Array.from({ length: pageCount }, (_, index) =>
+      makeFullPage(`B${String(index)}`),
+    );
+
+    expect(() => parseTenderPages(pages)).toThrow(/合計掃描列數超過/);
+    expect(() =>
+      parseTenderPages(pages, MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP),
+    ).not.toThrow();
   });
 });

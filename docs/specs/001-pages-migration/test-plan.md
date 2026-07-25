@@ -13,7 +13,8 @@
 
 - Unit：日期、金額、文字、URL、hash、資料新鮮度、日期範圍篩選（`dateRange.ts`）。
 - Parser fixture：正常、缺欄、欄位漂移、結構漂移零列、PCC 確認零筆標記、惡意 scheme、script、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-009）。
-- Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、分頁次數安全上限、cookie 串接（PAG-T-001～006）。
+- Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、分頁次數安全上限（含可覆寫的 `maxPages`）、cookie 串接（PAG-T-001～007）。
+- 首次回填（ADR-002）：西元年日期格式轉換（含跨月／跨年邊界）、日期區間查詢 URL 組裝、bootstrap 專用分頁與總量安全上限（PAG-T-008～011、PAR-T-012）。
 - Rolling window：30 天剪枝、合併去重、同日新增筆數驟降偵測（BASE-T-007／008）。
 - Contract：dataset 欄位、count、hash、`org` 列舉值與消費端驗證。
 - Component：初始資料（機關＝國防部、日期範圍＝當日）、篩選、stale、錯誤與重新整理。

@@ -1,7 +1,11 @@
 import {
+  buildBootstrapQueryUrl,
   extractNextPageUrl,
   fetchAllPccPages,
+  fetchBootstrapPages,
+  formatGregorianTaipei,
   MAX_PCC_PAGES,
+  MAX_PCC_PAGES_BOOTSTRAP,
 } from "../../scripts/lib/pccPagination";
 import { buildPccQueryUrl } from "../../scripts/lib/secureFetch";
 
@@ -90,5 +94,108 @@ describe("REQ-D-004 PCC pagination", () => {
       fetchImpl.mock.calls[1]?.[1]?.headers,
     );
     expect(secondCallHeaders.get("Cookie")).toBe("JSESSIONID=abc");
+  });
+
+  it("PAG-T-007 stops at a custom maxPages override instead of the routine default", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolve(
+            new Response(pageHtml(true), {
+              headers: { "content-type": "text/html; charset=utf-8" },
+            }),
+          );
+        }),
+    );
+
+    const pages = await fetchAllPccPages({ fetchImpl }, 3);
+    expect(pages).toHaveLength(3);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("ADR-002 first-run backfill date range", () => {
+  it("PAG-T-008 formats an epoch millisecond value as an Asia/Taipei Gregorian date with slashes", () => {
+    const nowMs = new Date("2026-07-25T04:00:00Z").getTime(); // 2026-07-25 12:00 Asia/Taipei
+    expect(formatGregorianTaipei(nowMs)).toBe("2026/07/25");
+  });
+
+  it("PAG-T-009 handles a year boundary correctly", () => {
+    const nowMs = new Date("2026-01-01T00:30:00Z").getTime(); // 2026-01-01 08:30 Asia/Taipei
+    expect(formatGregorianTaipei(nowMs)).toBe("2026/01/01");
+  });
+
+  it("PAG-T-010 builds a date-range query URL using Gregorian dates, isDate, and firstSearch=true", () => {
+    const nowMs = new Date("2026-07-25T04:00:00Z").getTime();
+    const url = buildBootstrapQueryUrl(nowMs, 30);
+
+    expect(url.searchParams.get("dateType")).toBe("isDate");
+    expect(url.searchParams.get("firstSearch")).toBe("true");
+    expect(url.searchParams.get("tenderStartDate")).toBe("2026/06/25");
+    expect(url.searchParams.get("tenderEndDate")).toBe("2026/07/25");
+    // 機關與分頁設定沿用例行查詢的預設值，不因為回填模式而改變。
+    expect(url.searchParams.get("orgId")).toBe("");
+    expect(url.searchParams.get("pageSize")).toBe("100");
+  });
+
+  it("PAG-T-011 fetches with the bootstrap page-count safety net, not the routine one", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolve(
+            new Response(pageHtml(true), {
+              headers: { "content-type": "text/html; charset=utf-8" },
+            }),
+          );
+        }),
+    );
+
+    const pages = await fetchBootstrapPages({ fetchImpl });
+    expect(pages).toHaveLength(MAX_PCC_PAGES_BOOTSTRAP);
+    expect(MAX_PCC_PAGES_BOOTSTRAP).toBeGreaterThan(MAX_PCC_PAGES);
+  });
+});
+
+describe("REQ-D-010 per-page retry resilience", () => {
+  // 2026-07-25 對真實 PCC 網站實測：231 頁的序列請求偶爾在單頁逾時或連線失敗
+  // （不同次測試分別發生在第 1 頁、第 16 頁，非固定門檻），需要重試而不是整批放棄。
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("PAG-T-012 retries a failing page fetch and succeeds once a retry works", async () => {
+    vi.useFakeTimers();
+    let call = 0;
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(() => {
+      call += 1;
+      if (call < 3) return Promise.reject(new TypeError("fetch failed"));
+      return Promise.resolve(
+        new Response(pageHtml(false), {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    });
+
+    const promise = fetchAllPccPages({ fetchImpl });
+    await vi.runAllTimersAsync();
+    const pages = await promise;
+
+    expect(pages).toHaveLength(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("PAG-T-013 exhausts retries and rethrows the last error when every attempt fails", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new TypeError("fetch failed"));
+
+    const promise = fetchAllPccPages({ fetchImpl });
+    const assertion = expect(promise).rejects.toThrow(/fetch failed/);
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    // 1 次初始嘗試 + 3 次重試。
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
 });

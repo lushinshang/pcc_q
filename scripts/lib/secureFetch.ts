@@ -4,7 +4,14 @@ const PCC_QUERY_PATH = "/prkms/tender/common/advanced/readTenderAdvanced";
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
 
-export function buildPccQueryUrl(): URL {
+export interface PccQueryOverrides {
+  dateType?: string;
+  tenderStartDate?: string;
+  tenderEndDate?: string;
+  firstSearch?: string;
+}
+
+export function buildPccQueryUrl(overrides: PccQueryOverrides = {}): URL {
   const url = new URL(PCC_QUERY_PATH, PCC_ORIGIN);
   const parameters: Record<string, string> = {
     pageSize: "100",
@@ -40,6 +47,7 @@ export function buildPccQueryUrl(): URL {
     radReConstruct: "",
     policyAdvocacy: "",
     isCpp: "",
+    ...overrides,
   };
   for (const [key, value] of Object.entries(parameters))
     url.searchParams.set(key, value);

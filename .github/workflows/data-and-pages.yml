@@ -17,8 +17,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fetch-data:
+    name: Fetch tender data
+    runs-on: ubuntu-latest
+    # 首次執行（無可用前一版基準）改用日期區間查詢一次回填過去 30 天，實測約需 22 分鐘且逐頁遞增；
+    # 例行查詢（isNow）通常幾秒內完成。獨立成一個 job 並拉長逾時，不擠壓下游品質閘門 job 的時限。
+    # 詳見 docs/specs/001-pages-migration/adr-first-run-backfill.md。
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Fetch fixed PCC source and validate dataset
+        run: npm run fetch:data
+      - name: Upload fetched dataset for the build job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: tender-dataset
+          path: public/data/tenders.json
+          retention-days: 1
+
   build:
-    name: Fetch, validate, test, and build
+    name: Validate, test, and build
+    needs:
+      - fetch-data
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -41,8 +71,11 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Fetch fixed PCC source and validate dataset
-        run: npm run fetch:data
+      - name: Download fetched dataset
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: tender-dataset
+          path: public/data
       - name: Formatting, lint, strict types, and coverage
         run: npm run validate:code
       - name: Workflow policy checks
