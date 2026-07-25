@@ -4,6 +4,27 @@
 
 本站為非官方公開資料整理，內容以政府電子採購網公告為準。不使用 Gemini 或其他生成式 AI API，也不需要任何 API key。
 
+## 系統流程
+
+```mermaid
+flowchart LR
+    classDef ext fill:#f7cfcf,stroke:#7a1f1f,color:#1a1a1a,stroke-width:1.5px
+    classDef core fill:#c7ebe4,stroke:#0b6b5c,color:#0b2b26,stroke-width:1.5px
+    classDef store fill:#ffe1a8,stroke:#8a5a00,color:#3a2600,stroke-width:1.5px
+
+    PCC["政府電子採購網 PCC<br/>不受信任外部來源"]:::ext
+    FETCH["GitHub Actions<br/>逐頁擷取＋HTML Parser"]:::core
+    VALID["機關白名單過濾<br/>Zod 契約驗證"]:::core
+    MERGE["與前一版合併<br/>剪枝超過 30 天"]:::core
+    JSON["tenders.json<br/>SHA-256 版本化"]:::store
+    PAGES["GitHub Pages<br/>純靜態 dist"]:::store
+    BR["使用者瀏覽器<br/>React SPA"]:::ext
+
+    PCC -->|"HTML（isNow／isDate）"| FETCH --> VALID --> MERGE --> JSON --> PAGES -->|同源讀取| BR
+```
+
+政府電子採購網（PCC）全程視為不受信任來源；資料經固定路徑擷取、白名單過濾與契約驗證後，才與前一版合併、剪枝，發布成版本化 JSON。瀏覽器只讀取同源靜態檔，不會直接連到 PCC 或任何 API。任一環節失敗即 fail closed，保留上一版，細節見 [SDD 系統設計文件](docs/pm/index.html)。
+
 ## 本機開發
 
 需求：Node.js 24 以上、npm。
@@ -49,6 +70,21 @@ npm audit --audit-level=high
 ## GitHub Pages 部署
 
 `.github/workflows/data-and-pages.yml` 在 `main` push、手動觸發，以及平日 `Asia/Taipei` 每 3 小時（`0,3,6,9,12,15,18,21` 點）執行，分三個 job：
+
+```mermaid
+flowchart TB
+    classDef trigger fill:#d8d3f0,stroke:#4b3b8f,color:#241a4d,stroke-width:1.5px
+    classDef job fill:#c7ebe4,stroke:#0b6b5c,color:#0b2b26,stroke-width:1.5px
+    classDef perm fill:#ffe1a8,stroke:#8a5a00,color:#3a2600,stroke-width:1.5px
+
+    T["main push／workflow_dispatch／<br/>平日 Asia/Taipei 每 3 小時 cron"]:::trigger
+    A["fetch-data（逾時 60 分）<br/>擷取＋驗證"]:::job
+    B["build（逾時 25 分）<br/>format/lint/typecheck/coverage/<br/>build/html/dist/E2E/audit"]:::job
+    C["deploy<br/>pages: write／id-token: write"]:::perm
+    D["GitHub Pages"]:::job
+
+    T --> A -->|"artifact: tender-dataset"| B -->|"artifact: dist"| C --> D
+```
 
 1. `fetch-data`（逾時 60 分鐘）：只做資料擷取與驗證，把 `public/data/tenders.json` 以 artifact 交給下一個 job；首次 30 天回填可能需要約 20 分鐘，因此獨立出來，不擠壓下面的品質閘門時限。
 2. `build`（逾時 25 分鐘，`needs: fetch-data`）：下載該 artifact 後執行 format、lint、strict typecheck、coverage、workflow policy、build、HTML validation、dist scan、E2E 與 audit，全部通過才把只含 `dist` 的 artifact 交出去。
