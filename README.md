@@ -114,15 +114,71 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 Production 上線後另做了一輪獨立紅隊視角複查，找到三項違反本專案「任何異常都該 fail closed」核心原則的具體缺口——不是臆測，都附檔案行號與可重現步驟。完整測試計畫、攻擊面地圖與逐項改善規劃（依 SDD 先定義設計變更、TDD 先寫失敗測試再實作的既有慣例）見 [紅隊資安測試計畫](docs/security/red-team-test-plan.html)。
 
-| ID     | 缺口                                                                                                                                | 嚴重度 | 修復內容                                                                                                                  | 狀態         |
-| :----- | :---------------------------------------------------------------------------------------------------------------------------------- | :----- | :------------------------------------------------------------------------------------------------------------------------ | :----------- |
-| RT-001 | 確認零筆判斷用樸素子字串比對，標記文字塞進 `<script>`／註解也會被誤判為合法零筆                                                     | HIGH   | 改為 `td.tb_b2` 內容標記與 `#pagebanner` 顯示「共有 0 筆資料」兩項 DOM 證據須同時成立                                     | **VERIFIED** |
-| RT-002 | `fetch-tenders.ts` 的 bootstrap／fallback 核心流程完全沒有測試與 coverage，正是先前「空資料集導致回填永遠不觸發」事故未被攔下的根因 | HIGH   | 抽出可注入依賴的 `runFetchPipeline()`，CLI 與 exit code 邏輯分離；補齊 9 項情境測試，含「雙重失敗不寫檔」原本未定義的邊界 | **VERIFIED** |
-| RT-003 | 分頁擷取跑滿 `maxPages` 上限時靜默回傳，即使最後一頁仍有下一頁連結                                                                  | MEDIUM | 迴圈跑滿上限但仍偵測到下一頁時改為拋錯 fail closed，交由既有 bootstrap fallback 自動退回例行查詢                          | **VERIFIED** |
+| ID     | 缺口                                                                                                                                | 嚴重度 | 修復內容                                                                                                              | 狀態         |
+| :----- | :---------------------------------------------------------------------------------------------------------------------------------- | :----- | :-------------------------------------------------------------------------------------------------------------------- | :----------- |
+| RT-001 | 確認零筆判斷用樸素子字串比對，標記文字塞進 `<script>`／註解也會被誤判為合法零筆                                                     | HIGH   | 改為 `td.tb_b2` 內容標記、沒有任何標案資料列及 `#pagebanner` 顯示「共有 0 筆資料」三項證據須同時成立                  | **VERIFIED** |
+| RT-002 | `fetch-tenders.ts` 的 bootstrap／fallback 核心流程完全沒有測試與 coverage，正是先前「空資料集導致回填永遠不觸發」事故未被攔下的根因 | HIGH   | 抽出可注入依賴的 `runFetchPipeline()`，CLI 與 exit code 邏輯分離；新增 FETCH-T-001～007，含「雙重失敗不寫檔」安全邊界 | **VERIFIED** |
+| RT-003 | 分頁擷取跑滿 `maxPages` 上限時靜默回傳，即使最後一頁仍有下一頁連結                                                                  | MEDIUM | 迴圈跑滿上限但仍偵測到下一頁時改為拋錯 fail closed，交由既有 bootstrap fallback 自動退回例行查詢                      | **VERIFIED** |
 
-修復由 Codex CLI 在沙箱環境（無對外網路、未觸發 GitHub Actions、未連線 PCC）依既定優先序 RT-002 → RT-001 → RT-003 完成，每項獨立 commit；完成後獨立重新執行全部本機品質閘門驗證（不僅採信執行方回報），結果一致：Vitest 122/122、Playwright E2E 8/8、ESLint／TypeScript／build／HTML validation 全過、`security:repo` 88 檔案零發現、`security:dist` 4 檔案零發現、Gitleaks 30 commits 零洩漏、`npm audit --audit-level=high` 0 vulnerabilities；三項修復的程式碼改動亦逐一人工複核，確認邏輯與測試計畫規劃一致。
+修復由 Codex CLI 在沙箱環境（無對外網路、未觸發 GitHub Actions、未連線 PCC）依既定優先序 RT-002 → RT-001 → RT-003 完成，每項獨立 commit；完成後重新執行全部本機品質閘門驗證（不僅採信執行方回報），結果一致：Vitest 122/122、Playwright E2E 8/8、ESLint／TypeScript／build／HTML validation 全過、`security:repo` 88 檔案零發現、`security:dist` 4 檔案零發現、修復文件階段 Gitleaks 30 commits 零洩漏、`npm audit --offline --audit-level=high` 0 vulnerabilities；README 歷程 commits 完成後再掃描 32 commits，仍為零洩漏。三項修復的程式碼改動亦逐一人工複核，確認邏輯與測試計畫規劃一致。
 
-**尚未完成**：三項修復皆涉及擷取管線邏輯，需再一次 `workflow_dispatch` 手動觸發，對真實 PCC 站驗證行為正確，不能只憑本機測試通過就假設沒問題——這與 ADR-002 上線時的既有教訓一致。
+#### 4.1 執行前提與紀律
+
+- 先完整閱讀紅隊計畫 §03、§04、§10，以及 `design.md`、`threat-model.md` 與現有程式碼；實作順序完全沿用既定改善規劃，沒有重新發明另一套設計。
+- 一般測試只使用 repository 內 fixture／mock。RT-001 直接使用既有真實零筆 fixture `tests/fixtures/pcc-confirmed-zero.html` 的 `td.tb_b2` 與 `#pagebanner` 訊號，沒有猜測 PCC DOM，也沒有發出真實請求。
+- `node_modules` 原先不存在；為了測試，以 `npm ci --offline` 從本機 npm cache 還原相依，完成後移除，不把暫時套件或 cache 納入 commit。
+- 每一項修復都先保留 Red 證據，再做最小 Green 實作，重構後重跑 targeted tests、coverage、lint 與 typecheck；沒有刪除／skip 測試，也沒有放寬 coverage 門檻。
+
+#### 4.2 RT-002：先把無法觀測的核心流程變成可測試介面
+
+1. **Red**：先新增五個規劃要求的情境。舊程式沒有可匯入的 orchestration 函式，五項都因缺少 `runFetchPipeline()`／`fetchBootstrapOrFallback()` 而失敗。
+2. **Green**：把 CLI `main()` 拆為可注入依賴的 `runFetchPipeline()`、`fetchRoutine()` 與 `fetchBootstrapOrFallback()`；pipeline 只回傳結果或拋錯，不直接 `process.exit()`。CLI 入口才把結果轉成 `process.exitCode`。
+3. **安全寫入邊界**：只有解析品質、資料契約、同日驟降及最終 metadata 全部通過後，才以 temporary file + atomic rename 寫入 `tenders.json`。bootstrap 與 routine 都失敗時，測試明確確認 writer 不會被呼叫。
+4. **Refactor／證據**：補上原子寫入與 ESM CLI guard 後形成 FETCH-T-001～007；`vitest.config.ts` 明確把 `scripts/fetch-tenders.ts` 納入 coverage。此階段 targeted suite 7/7 通過。
+5. **Commit**：`1400b3c test(fetch): cover bootstrap orchestration for RT-002`。
+
+#### 4.3 RT-001：零筆不是一段文字，而是多項獨立證據
+
+1. **Red**：新增 `pcc-zero-marker-in-script.html`、`pcc-zero-marker-in-comment.html`，再加入「合法內容文字存在但缺少 `#pagebanner=0`」案例。舊 `html.includes()` 實作把三者都當成合法零筆，結果為 3 failed／13 passed。
+2. **Green**：改用 Cheerio 查詢 DOM，要求：
+   - 合法內容區塊 `td.tb_b2` 的可見文字正好是「無符合條件資料」；
+   - 頁面沒有任何標案資料列；
+   - 第一個 `#pagebanner` 的正規化文字正好是「共有 0 筆資料」。
+3. **防止矯枉過正**：既有真實 fixture `pcc-confirmed-zero.html`（PAR-T-003b）仍被接受；`pcc-zero.html` 與 `pcc-field-drift.html` 仍 fail closed。
+4. **Refactor／證據**：parser targeted suite 16/16；parser lines 100%、branches 94.59%。
+5. **Commit**：`8396316 fix(parser): require zero-result evidence for RT-001`。
+
+#### 4.4 RT-003：安全上限必須區分「剛好完成」與「遭到截斷」
+
+1. **Red**：先反轉 PAG-T-005／PAG-T-011 的舊斷言。舊實作在最後允許頁仍有下一頁時錯誤 resolve，因此兩項如預期失敗。
+2. **必要的測試修正**：第一版 FETCH-T-008 mock 重複回傳同一個已被消耗的 `Response`，造成 retry timeout。這是測試工具本身的缺陷，不是產品行為；改成每次 request 都建立新的 `Response` 後，才繼續驗證真正的分頁行為。這段過程保留下來，提醒後續維護者：測試也需要接受同等嚴格的因果檢查。
+3. **Green**：`fetchAllPccPages()` 遇到「最後一頁沒有下一頁」立即正常回傳；只有迴圈跑滿 `maxPages` 且最後一頁仍有下一頁時，才拋出「分頁數超過安全上限，可能資料不完整」。
+4. **整合證據**：PAG-T-007 確認總頁數剛好等於上限不會誤報；FETCH-T-008 製造 400 頁鏈，確認 bootstrap 捕捉錯誤、改走 routine，且不發布 `TRUNCATED-BOOTSTRAP` 資料。例行與 bootstrap 共用同一個 fail-closed 實作。
+5. **Refactor／證據**：`fetch-tenders.test.ts` + `pcc-pagination.test.ts` targeted suite 22/22。
+6. **Commit**：`7392440 fix(fetch): fail closed at pagination limits for RT-003`。
+
+#### 4.5 完整驗證過程與沙箱例外
+
+| 階段                      | 實際發生的事情                                                                                                                  | 處理與結果                                                                                                                                                                   |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 第一次 `npm run validate` | Prettier 找到 RT-003 測試檔排版差異                                                                                             | 修正後 amend 回 RT-003 commit，從頭重跑                                                                                                                                      |
+| 第二次 `npm run validate` | format、lint、typecheck、122 tests、repo scan、workflow policy 均通過；actionlint 因沙箱 DNS 無法查詢 `proxy.golang.org` 而停止 | 依沙箱規則尋找 Go module cache，從 `actionlint@v1.7.12/cmd/actionlint` 以 `GOPROXY=off GOFLAGS=-mod=mod go run .` 離線驗證三份 workflow；再逐項完成 build、HTML 與 dist 閘門 |
+| Gitleaks history          | 同樣不能依賴對外下載                                                                                                            | 由本機 `gitleaks/v8@v8.30.1` module cache 離線掃描；§10 文件 commit 後為 30 commits，README 歷程 commits 後最終重掃 32 commits，均為零洩漏                                   |
+| Playwright 第一次啟動     | 沙箱禁止 Vite preview 綁定 `127.0.0.1:4173`，回傳 `EPERM`                                                                       | 只提升本機 loopback server 所需權限重跑；desktop／mobile、axe、CSP、overflow 8/8 通過，未連線 PCC                                                                            |
+| Dependency audit          | 沙箱無網路                                                                                                                      | `npm audit --offline --audit-level=high`，0 vulnerabilities                                                                                                                  |
+| 最終清理                  | 本輪暫時還原 255 MB `node_modules`                                                                                              | 全部驗證結束後移除；Git working tree 保持乾淨                                                                                                                                |
+
+最終 coverage 為 statements 95.77%、lines 96.27%、branches 92.28%、functions 96.03%，高於既有 90%／90%／85%／90% 門檻。完整改善狀態與規格同步 commit 為 `13e6454 docs(security): verify RT-001 through RT-003 remediation`；初版 README 歷程整理為 `8797b8f docs(readme): record red-team remediation process (OPERATION LEDGERWATCH)`。本輪所有 commit 都只留在本機，沒有 push、force push、重寫既有歷史或觸發 GitHub Actions。
+
+這次留下的工程教訓：
+
+- coverage 數字再高，如果關鍵 CLI orchestration 根本不在 `include`，仍可能存在真正的測試盲區。
+- fail closed 不能依賴容易被偽造或殘留的單一自由文字；安全判斷要建立在彼此獨立、結構化的證據上。
+- 「安全上限」不是正常成功條件；到達上限時必須證明資料自然結束，否則就是截斷。
+- Red test 本身也可能有 fixture／mock 缺陷；應修正測試因果，而不是把 timeout 誤稱為產品缺陷。
+- 沙箱限制可以用離線 cache 與最小權限替代驗證，但必須如實記錄，不能把未執行項目假稱通過。
+
+**尚待人工確認**：RT-002／RT-003 涉及擷取管線邏輯，需在有 GitHub 與 PCC 網路權限的真實環境手動執行一次 `data-and-pages` 的 `workflow_dispatch`，驗證真實擷取及 production deployment。這次本機工作沒有執行該步驟，也不能以 deterministic tests 取代它。
 
 ## 故障處理
 
