@@ -1,0 +1,1833 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>國防部標案儀表板 — 系統文件套組</title>
+    <style>
+      :root {
+        --ink-900: #14213d;
+        --ink-700: #2a3a5c;
+        --paper-100: #f6f3ea;
+        --paper-000: #fffdf8;
+        --accent: #0e8f82;
+        --accent-dim: #0e8f8222;
+        --accent-amber: #c9822a;
+        --accent-amber-dim: #c9822a1f;
+        --accent-rose: #b5423a;
+        --accent-rose-dim: #b5423a1a;
+        --accent-sage: #4b8a63;
+        --accent-sage-dim: #4b8a631c;
+        --line: #ddd5c2;
+        --text: #24211a;
+        --text-dim: #6b6455;
+        --code-bg: #eee8d8;
+        --sidebar-bg: var(--ink-900);
+        --sidebar-text: #cfd6ea;
+        --sidebar-text-dim: #8592b3;
+        --sidebar-active: #1e3155;
+      }
+
+      :root[data-theme="dark"] {
+        --ink-900: #0b1424;
+        --paper-100: #16202f;
+        --paper-000: #101827;
+        --accent: #2bb3a4;
+        --accent-dim: #2bb3a42a;
+        --accent-amber: #e0a355;
+        --accent-amber-dim: #e0a35526;
+        --accent-rose: #e07a71;
+        --accent-rose-dim: #e07a7124;
+        --accent-sage: #7fc397;
+        --accent-sage-dim: #7fc39722;
+        --line: #2c394f;
+        --text: #e7e6df;
+        --text-dim: #a3aabb;
+        --code-bg: #1c2739;
+        --sidebar-bg: #070d19;
+        --sidebar-text: #c3cbe0;
+        --sidebar-text-dim: #6d7896;
+        --sidebar-active: #16243c;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --ink-900: #0b1424;
+          --paper-100: #16202f;
+          --paper-000: #101827;
+          --accent: #2bb3a4;
+          --accent-dim: #2bb3a42a;
+          --accent-amber: #e0a355;
+          --accent-amber-dim: #e0a35526;
+          --accent-rose: #e07a71;
+          --accent-rose-dim: #e07a7124;
+          --accent-sage: #7fc397;
+          --accent-sage-dim: #7fc39722;
+          --line: #2c394f;
+          --text: #e7e6df;
+          --text-dim: #a3aabb;
+          --code-bg: #1c2739;
+          --sidebar-bg: #070d19;
+          --sidebar-text: #c3cbe0;
+          --sidebar-text-dim: #6d7896;
+          --sidebar-active: #16243c;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--paper-100);
+        color: var(--text);
+        font-family:
+          -apple-system, "Segoe UI", "Helvetica Neue", Arial, "PingFang TC",
+          "Microsoft JhengHei", sans-serif;
+      }
+
+      body {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family:
+          "Iowan Old Style", "Palatino Linotype", Palatino, "Songti TC",
+          Georgia, serif;
+        font-weight: 600;
+        text-wrap: balance;
+        color: var(--ink-900);
+        line-height: 1.25;
+      }
+      :root[data-theme="dark"] h1,
+      :root[data-theme="dark"] h2,
+      :root[data-theme="dark"] h3,
+      :root[data-theme="dark"] h4 {
+        color: #eef1fb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) h1,
+        :root:not([data-theme="light"]) h2,
+        :root:not([data-theme="light"]) h3,
+        :root:not([data-theme="light"]) h4 {
+          color: #eef1fb;
+        }
+      }
+
+      code,
+      .mono {
+        font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+        font-size: 0.88em;
+      }
+
+      code {
+        background: var(--code-bg);
+        padding: 0.1em 0.4em;
+        border-radius: 4px;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration-thickness: 1px;
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      a:focus-visible,
+      button:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      /* ---------- Sidebar ---------- */
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        width: 258px;
+        flex: 0 0 258px;
+        background: var(--sidebar-bg);
+        color: var(--sidebar-text);
+        padding: 28px 18px 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 0 6px 16px;
+        border-bottom: 1px solid #ffffff1c;
+      }
+      .brand .eyebrow {
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .brand .title {
+        font-family:
+          "Iowan Old Style", "Palatino Linotype", Palatino, "Songti TC",
+          Georgia, serif;
+        font-size: 1.12rem;
+        color: #f2f4fb;
+        line-height: 1.3;
+      }
+
+      .doc-switch {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .doc-switch button {
+        all: unset;
+        cursor: pointer;
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        padding: 8px 10px;
+        border-radius: 7px;
+        font-size: 0.86rem;
+        color: var(--sidebar-text-dim);
+        transition:
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .doc-switch button .tag {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.72rem;
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .doc-switch button:hover {
+        background: #ffffff10;
+        color: var(--sidebar-text);
+      }
+      .doc-switch button[aria-current="true"] {
+        background: var(--sidebar-active);
+        color: #f2f4fb;
+      }
+
+      .toc {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        font-size: 0.79rem;
+        border-top: 1px solid #ffffff1c;
+        padding-top: 14px;
+      }
+      .toc a {
+        color: var(--sidebar-text-dim);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 6px;
+        display: block;
+      }
+      .toc a:hover {
+        color: var(--sidebar-text);
+        background: #ffffff0c;
+      }
+
+      .sidebar-foot {
+        margin-top: auto;
+        font-size: 0.72rem;
+        color: var(--sidebar-text-dim);
+        padding: 12px 6px 0;
+        border-top: 1px solid #ffffff1c;
+        line-height: 1.6;
+      }
+
+      /* ---------- Main ---------- */
+      main {
+        flex: 1;
+        min-width: 0;
+        padding: 52px 10vw 100px;
+      }
+
+      .doc-panel {
+        display: none;
+        max-width: 74ch;
+        margin: 0 auto;
+      }
+      .doc-panel.active {
+        display: block;
+      }
+
+      .doc-head {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-bottom: 26px;
+        margin-bottom: 34px;
+        border-bottom: 2px solid var(--ink-900);
+      }
+      .doc-head .kicker {
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .doc-head h1 {
+        font-size: 2rem;
+        margin: 0;
+      }
+      .doc-head .sub {
+        color: var(--text-dim);
+        font-size: 0.98rem;
+        max-width: 62ch;
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.01em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .chip.accent {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      }
+      .chip.amber {
+        background: var(--accent-amber-dim);
+        color: var(--accent-amber);
+        border-color: color-mix(in srgb, var(--accent-amber) 40%, transparent);
+      }
+      .chip.rose {
+        background: var(--accent-rose-dim);
+        color: var(--accent-rose);
+        border-color: color-mix(in srgb, var(--accent-rose) 40%, transparent);
+      }
+      .chip.sage {
+        background: var(--accent-sage-dim);
+        color: var(--accent-sage);
+        border-color: color-mix(in srgb, var(--accent-sage) 40%, transparent);
+      }
+      .chip.mono {
+        font-family: ui-monospace, monospace;
+      }
+
+      .callout {
+        background: var(--paper-000);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 0.92rem;
+        color: var(--text-dim);
+        margin: 20px 0 30px;
+      }
+      .callout code {
+        background: var(--code-bg);
+      }
+
+      .note-dim {
+        color: var(--text-dim);
+        font-size: 0.88rem;
+      }
+      .mt-10 {
+        margin-top: 10px;
+      }
+
+      section.doc-section {
+        padding-top: 8px;
+        margin-bottom: 40px;
+        scroll-margin-top: 24px;
+      }
+      section.doc-section h2 {
+        font-size: 1.32rem;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      section.doc-section h2 .num {
+        font-family: ui-monospace, monospace;
+        font-size: 0.78rem;
+        color: var(--accent);
+        background: var(--accent-dim);
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-weight: 700;
+      }
+      section.doc-section h3 {
+        font-size: 1.05rem;
+        margin-top: 26px;
+        margin-bottom: 10px;
+      }
+
+      p {
+        line-height: 1.75;
+        margin: 0 0 14px;
+      }
+      ul,
+      ol {
+        line-height: 1.75;
+        padding-left: 1.35em;
+        margin: 0 0 14px;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      strong {
+        color: var(--ink-900);
+      }
+      :root[data-theme="dark"] strong {
+        color: #f0f2fa;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) strong {
+          color: #f0f2fa;
+        }
+      }
+
+      /* ---------- Tables ---------- */
+      .table-wrap {
+        overflow-x: auto;
+        margin: 0 0 22px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.88rem;
+      }
+      caption {
+        text-align: left;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        padding: 8px 14px 0;
+      }
+      thead th {
+        text-align: left;
+        background: var(--ink-900);
+        color: #f1f3fb;
+        font-weight: 600;
+        padding: 9px 14px;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      tbody td {
+        padding: 9px 14px;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tbody tr:nth-child(even) {
+        background: color-mix(in srgb, var(--paper-000) 60%, var(--paper-100));
+      }
+      tbody tr:hover {
+        background: var(--accent-dim);
+      }
+
+      /* ---------- Mermaid card ---------- */
+      .diagram-card {
+        background: var(--paper-000);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px 18px 8px;
+        margin: 8px 0 26px;
+        overflow-x: auto;
+      }
+      .diagram-card .cap {
+        font-size: 0.76rem;
+        color: var(--text-dim);
+        margin: 10px 2px 4px;
+        border-top: 1px dashed var(--line);
+        padding-top: 8px;
+      }
+      .diagram-card pre.mermaid {
+        margin: 0;
+      }
+      .diagram-card svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      /* ---------- Legend for risk / moscow chips ---------- */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        margin: 4px 0 20px;
+      }
+      .legend .dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      .dot.accent {
+        background: var(--accent);
+      }
+      .dot.amber {
+        background: var(--accent-amber);
+      }
+      .dot.rose {
+        background: var(--accent-rose);
+      }
+      .dot.sage {
+        background: var(--accent-sage);
+      }
+
+      blockquote {
+        margin: 0 0 22px;
+        padding: 4px 0 4px 16px;
+        border-left: 3px solid var(--line);
+        color: var(--text-dim);
+        font-size: 0.9rem;
+      }
+
+      .theme-toggle {
+        all: unset;
+        cursor: pointer;
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        color: var(--sidebar-text-dim);
+        padding: 5px 9px;
+        border-radius: 6px;
+        border: 1px solid #ffffff1c;
+      }
+      .theme-toggle:hover {
+        color: var(--sidebar-text);
+        border-color: #ffffff33;
+      }
+
+      @media (max-width: 880px) {
+        body {
+          flex-direction: column;
+        }
+        .sidebar {
+          position: static;
+          width: 100%;
+          flex: none;
+          height: auto;
+        }
+        main {
+          padding: 32px 6vw 80px;
+        }
+      }
+
+      @media print {
+        .sidebar {
+          display: none;
+        }
+        .doc-panel {
+          display: block !important;
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="sidebar" aria-label="文件導覽">
+      <div class="brand">
+        <div class="eyebrow">Systems Documentation</div>
+        <div class="title">國防部當日公告<br />標案儀表板</div>
+      </div>
+
+      <div
+        class="doc-switch"
+        id="doc-switch"
+        role="group"
+        aria-label="文件切換"
+      >
+        <button type="button" data-doc="prd" aria-current="true">
+          <span class="tag">PRD</span> 產品需求文件
+        </button>
+        <button type="button" data-doc="srs">
+          <span class="tag">SRS</span> 軟體需求規格
+        </button>
+        <button type="button" data-doc="sdd">
+          <span class="tag">SDD</span> 系統設計文件
+        </button>
+        <button type="button" data-doc="stp">
+          <span class="tag">STP</span> 軟體測試計畫
+        </button>
+      </div>
+
+      <nav class="toc" id="toc" aria-label="章節"></nav>
+
+      <div class="sidebar-foot">
+        <button class="theme-toggle" id="theme-toggle" type="button">
+          🌓 切換淺色／深色
+        </button>
+        <div class="mt-10">
+          來源：<span class="mono">docs/pm/</span><br />權威需求／設計／測試
+          ID：<span class="mono">docs/specs/001-pages-migration/</span>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <!-- ============================================================ PRD ============================================================ -->
+      <article class="doc-panel active" id="panel-prd" data-panel="prd">
+        <header class="doc-head">
+          <div class="kicker">Product Requirements Document</div>
+          <h1>PRD — 產品需求文件</h1>
+          <p class="sub">
+            說明「為什麼做這個系統、給誰用、成功長什麼樣子」——工程規格細節不重複，一律連結到
+            SRS／SDD。
+          </p>
+          <div class="meta-row">
+            <span class="chip accent mono">v1.0</span>
+            <span class="chip amber">狀態：草案（回溯性補齊）</span>
+            <span class="chip mono">最後更新 2026-07-25</span>
+          </div>
+        </header>
+
+        <section class="doc-section" id="prd-1">
+          <h2><span class="num">§1</span> 背景與問題陳述</h2>
+          <p>
+            政府電子採購網（PCC，<code>web.pcc.gov.tw</code>）是台灣政府標案公告的單一官方來源，但其網頁介面每次查詢僅能鎖定單一機關與短時間窗，且原始網站需要手動翻頁、無法依機關快速比較，也沒有可程式化訂閱的公開
+            API。對於需要每天掌握特定機關（如國防部）標案動態的使用者，人工瀏覽
+            PCC 網站查找、跨頁比對、判斷是否為新公告是重複且容易遺漏的工作。
+          </p>
+          <p>
+            本專案的前身是一個以 Google AI Studio 產生的原型（含 Express
+            後端、Gemini API、需要 API
+            key），存在明確的安全與維運負擔（後端伺服器、API key 管理、生成式 AI
+            依賴皆非必要）。此次改造的產品目標是把它變成一個<strong>免維運、免密鑰、資料可驗證</strong>的公開儀表板。
+          </p>
+        </section>
+
+        <section class="doc-section" id="prd-2">
+          <h2><span class="num">§2</span> 目標使用者</h2>
+          <ul>
+            <li>
+              <strong>主要使用者</strong
+              >：需要每日掌握國防部（及未來可能擴充之其他中央／地方機關）標案公告的人員——例如採購承辦、投標廠商業務、政策研究者。
+            </li>
+            <li>
+              <strong>次要使用者</strong
+              >：對政府標案資料本身感興趣、想快速篩選特定機關／時間範圍標案的一般公眾。
+            </li>
+            <li>
+              使用情境為「查詢與瀏覽」，不含投標、下單、聯絡機關等交易行為——本站明確不是交易平台。
+            </li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="prd-3">
+          <h2><span class="num">§3</span> 產品目標與成功指標</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>目標</th>
+                  <th>對應成功指標</th>
+                  <th>現況（2026-07-25 實測）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>使用者能免登入、免安裝，直接在瀏覽器看到最新標案</td>
+                  <td>首屏載入時間、無需任何帳號／API key</td>
+                  <td>純靜態 SPA，同源 JSON 讀取，已驗證零外部 API 呼叫</td>
+                </tr>
+                <tr>
+                  <td>資料可信、可追溯、不失真</td>
+                  <td>資料來源標註、SHA-256 完整性、查詢模式標示</td>
+                  <td>
+                    每次發布皆含
+                    <code>fetchedAt</code>／<code>queryMode</code>／SHA-256
+                  </td>
+                </tr>
+                <tr>
+                  <td>免除維運與資安負擔</td>
+                  <td>零後端伺服器、零 API key、零第三方代理</td>
+                  <td>已徹底移除 Express／Gemini；純 GitHub Pages 部署</td>
+                </tr>
+                <tr>
+                  <td>資料即時性可接受</td>
+                  <td>排程頻率、新鮮度提示</td>
+                  <td>平日每 3 小時同步一次，前端 2 小時新鮮度警示</td>
+                </tr>
+                <tr>
+                  <td>使用者能快速找到相關標案</td>
+                  <td>篩選維度覆蓋率、預設值符合最常用情境</td>
+                  <td>
+                    機關（預設國防部）＋日期範圍（預設一週）＋案名／案號／招標方式搜尋，公告日新到舊排序
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note-dim">
+            本專案目前無使用者流量分析（無後端、無追蹤），因此「成功」目前以<strong>工程／驗收指標</strong>代理，尚未有真實使用者行為數據——列為已知限制，見
+            §8。
+          </p>
+        </section>
+
+        <section class="doc-section" id="prd-4">
+          <h2><span class="num">§4</span> 範圍與非範圍</h2>
+          <h3>範圍內</h3>
+          <ul>
+            <li>
+              不限機關逐頁擷取 PCC 標案公告（例行查詢當日；首次執行回填過去 30
+              天）。
+            </li>
+            <li>
+              前端本地端篩選：機關（白名單，含所有下轄單位）、日期範圍（當日／一週／一個月）、案名／案號關鍵字、招標方式。
+            </li>
+            <li>30 天滾動資料視窗（自動剪枝超過 30 天的舊記錄）。</li>
+            <li>資料來源、同步頻率、機關白名單的公開說明面板。</li>
+            <li>自動化排程更新（平日每 3 小時）與人工觸發。</li>
+          </ul>
+          <h3>範圍外（明確排除）</h3>
+          <ul>
+            <li>使用者帳號、登入、個人化訂閱或通知（email／推播）。</li>
+            <li>標案投標、下單、聯絡窗口等交易行為。</li>
+            <li>非公開資料或需登入才能查詢的 PCC 內容。</li>
+            <li>
+              生成式 AI 摘要／問答功能（前身原型曾用 Gemini，此版本刻意移除）。
+            </li>
+            <li>自訂網域、CDN、反向代理等額外基礎設施（除非另行授權）。</li>
+            <li>行動 App、瀏覽器擴充套件。</li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="prd-5">
+          <h2><span class="num">§5</span> 產品原則</h2>
+          <ol>
+            <li>
+              <strong>零信任上游輸入</strong>：PCC HTML
+              一律視為不受信任來源，任何進入發布資料的內容都要經過 schema 驗證。
+            </li>
+            <li>
+              <strong>Fail closed 優先</strong
+              >：偵測到資料異常（結構漂移、同日新增驟減、拒絕比例過高）時停止發布，保留上一版，不讓錯誤資料上線。
+            </li>
+            <li>
+              <strong>免密鑰、免後端</strong
+              >：不引入任何需要保管密鑰的元件；能用純靜態達成的功能不引入伺服器。
+            </li>
+            <li>
+              <strong>可驗證優於可承諾</strong
+              >：任何「已完成」的宣稱都要有可重現的驗證證據，不接受「應該沒問題」。
+            </li>
+            <li>
+              <strong>公開資料，非官方整理</strong
+              >：頁面明確標示本站非官方，內容以 PCC 公告為準。
+            </li>
+          </ol>
+        </section>
+
+        <section class="doc-section" id="prd-6">
+          <h2><span class="num">§6</span> Epic 層級 Backlog</h2>
+          <p class="note-dim">
+            回溯性整理；除 E6 外皆已完成。顏色代表狀態，非優先序。
+          </p>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart TB
+  classDef done fill:#d7e7d0,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef doing fill:#f4ddb8,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+
+  E1["E1 · 純靜態化改造<br/>移除 Express/Gemini 後端"]:::done
+  E2["E2 · 機關與日期篩選<br/>下拉篩選＋預設值＋排序"]:::done
+  E3["E3 · 首次執行 30 天回填<br/>ADR-002"]:::done
+  E4["E4 · 30 天滾動資料視窗<br/>合併去重＋剪枝"]:::done
+  E5["E5 · 資料來源說明面板<br/>白名單＋同步排程"]:::done
+  E6["E6 · 目錄與文件整理<br/>_archive/ ＋ 本文件套組"]:::doing
+
+  E1 --> E2 --> E3 --> E4 --> E5 --> E6
+        </pre>
+          </div>
+          <div class="legend">
+            <span><span class="dot sage"></span>已完成</span>
+            <span><span class="dot amber"></span>進行中</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Epic</th>
+                  <th>對應 SRS 需求</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>E1．純靜態化改造</td>
+                  <td class="mono">REQ-F-004／006、REQ-S-001～008</td>
+                </tr>
+                <tr>
+                  <td>E2．機關與日期篩選</td>
+                  <td class="mono">REQ-F-007／008／009</td>
+                </tr>
+                <tr>
+                  <td>E3．首次執行 30 天回填</td>
+                  <td class="mono">REQ-D-010</td>
+                </tr>
+                <tr>
+                  <td>E4．30 天滾動資料視窗</td>
+                  <td class="mono">REQ-D-009</td>
+                </tr>
+                <tr>
+                  <td>E5．資料來源說明面板</td>
+                  <td class="mono">REQ-F-009</td>
+                </tr>
+                <tr>
+                  <td>E6．目錄與文件整理</td>
+                  <td class="mono">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="prd-7">
+          <h2><span class="num">§7</span> 假設與依賴</h2>
+          <ul>
+            <li>
+              PCC 網站持續以現有 HTML
+              結構與查詢參數對外開放，不需登入即可查詢任意機關。PCC
+              若改版介面會導致擷取失敗（設計上會 fail closed 並保留舊版）。
+            </li>
+            <li>
+              GitHub Pages／Actions 服務持續可用；未啟用 branch
+              protection，權限控管依賴 workflow 內部設計而非平台強制。
+            </li>
+            <li>
+              使用者以現代瀏覽器（支援 ES Module、<code>&lt;details&gt;</code>
+              原生互動）存取。
+            </li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="prd-8">
+          <h2><span class="num">§8</span> 已知限制</h2>
+          <ul>
+            <li>無使用者流量／行為分析，§3 成功指標僅能以工程驗收數據代理。</li>
+            <li>
+              GitHub Pages 無法由 repository 自訂完整 HTTP response
+              headers（HSTS、<code>X-Frame-Options</code>、<code
+                >Permissions-Policy</code
+              >
+              等不在控制範圍內）。
+            </li>
+            <li>機關白名單為靜態列舉，新增機關需修改程式碼並重新部署。</li>
+            <li>排程頻率固定為平日每 3 小時，非即時（分鐘級）更新。</li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="prd-9">
+          <h2><span class="num">§9</span> 路線圖</h2>
+          <div class="legend">
+            <span><span class="dot accent"></span>Now</span>
+            <span><span class="dot amber"></span>Next（候選）</span>
+            <span><span class="dot rose"></span>Later（構想）</span>
+          </div>
+          <ul>
+            <li>
+              <span class="chip accent">Now</span>
+              本次系統文件補齊（PRD／SRS／STP／SDD）。
+            </li>
+            <li>
+              <span class="chip amber">Next</span>
+              機關白名單擴充機制（改為設定檔驅動）；週末／例假日排程評估。
+            </li>
+            <li>
+              <span class="chip rose">Later</span>
+              使用者可自訂追蹤機關清單（需重新評估零後端原則是否相容）。
+            </li>
+          </ul>
+        </section>
+      </article>
+
+      <!-- ============================================================ SRS ============================================================ -->
+      <article class="doc-panel" id="panel-srs" data-panel="srs">
+        <header class="doc-head">
+          <div class="kicker">Software Requirements Specification</div>
+          <h1>SRS — 軟體需求規格</h1>
+          <p class="sub">
+            整合並補齊
+            <code class="mono">requirements.md</code>（工程需求權威來源）的 IEEE
+            830 結構缺項：外部介面、非功能需求、優先序。
+          </p>
+          <div class="meta-row">
+            <span class="chip accent mono">v1.0</span>
+            <span class="chip sage">狀態：已核准</span>
+            <span class="chip mono">最後更新 2026-07-25</span>
+          </div>
+        </header>
+
+        <div class="callout">
+          需求編號（REQ-F／D／S）本身的權威來源仍是
+          <code>requirements.md</code
+          >；本文件補齊外部介面需求、非功能需求、優先序，不重複維護逐條驗收條件文字。
+        </div>
+
+        <section class="doc-section" id="srs-2">
+          <h2><span class="num">§2</span> 定義與縮寫</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>詞彙</th>
+                  <th>說明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">PCC</td>
+                  <td>
+                    政府電子採購網（<code>web.pcc.gov.tw</code>），本系統唯一資料來源
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">Tender</td>
+                  <td>一筆標案公告記錄</td>
+                </tr>
+                <tr>
+                  <td class="mono">isNow</td>
+                  <td>PCC 查詢模式：當日公告（例行擷取使用）</td>
+                </tr>
+                <tr>
+                  <td class="mono">isDate</td>
+                  <td>
+                    PCC 查詢模式：日期區間查詢（僅首次執行回填使用，見 ADR-002）
+                  </td>
+                </tr>
+                <tr>
+                  <td>白名單機關</td>
+                  <td>
+                    <code>orgWhitelist.ts</code>
+                    中列舉的機關名稱，非白名單機關的資料列會被靜默排除
+                  </td>
+                </tr>
+                <tr>
+                  <td>滾動視窗</td>
+                  <td>
+                    發布資料集僅保留最近 30 天內公告的記錄，每次擷取後剪枝
+                  </td>
+                </tr>
+                <tr>
+                  <td>Fail closed</td>
+                  <td>
+                    偵測到資料異常時中止發布流程、保留上一版，而非發布可疑資料
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="srs-3">
+          <h2><span class="num">§3</span> 整體描述</h2>
+          <h3>3.1 產品情境</h3>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart LR
+  classDef ext fill:#f1cfcb,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef core fill:#cfeae6,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+
+  PCC["web.pcc.gov.tw<br/>（外部・不受信任）"]:::ext
+  GA["GitHub Actions<br/>fetch-tenders.ts"]:::core
+  JSON["public/data/tenders.json<br/>SHA-256 驗證"]:::core
+  GP["GitHub Pages<br/>純靜態 dist"]:::core
+  BR["使用者瀏覽器<br/>React SPA"]:::ext
+
+  PCC -->|HTML 逐頁擷取| GA --> JSON --> GP -->|同源讀取| BR
+        </pre>
+            <div class="cap">系統情境圖與模組責任見 SDD §2、§3。</div>
+          </div>
+          <h3>3.2 使用者類別</h3>
+          <p>
+            見 PRD
+            §2。系統不區分帳號或權限層級——所有訪客看到相同的公開資料與相同的篩選能力。
+          </p>
+          <h3>3.3 運作環境</h3>
+          <ul>
+            <li>
+              資料擷取端：GitHub Actions
+              runner（<code>ubuntu-latest</code>），Node.js 24。
+            </li>
+            <li>發布端：GitHub Pages（純靜態，無伺服器端執行環境）。</li>
+            <li>使用端：現代桌面／行動瀏覽器，支援 ES Module。</li>
+          </ul>
+          <h3>3.4 設計與實作限制</h3>
+          <ul>
+            <li>不得引入後端伺服器、資料庫或需保管密鑰的第三方服務。</li>
+            <li>
+              擷取器不得接受任意 URL（<span class="mono">REQ-S-001</span>）。
+            </li>
+            <li>
+              所有 GitHub Actions 第三方 action 必須鎖定完整 commit SHA（<span
+                class="mono"
+                >REQ-S-005</span
+              >）。
+            </li>
+            <li>
+              GitHub Pages 無法自訂完整 HTTP response headers——CSP 只能用
+              <code>&lt;meta&gt;</code>，非 response header（<span class="mono"
+                >REQ-S-007</span
+              >）。
+            </li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="srs-4">
+          <h2><span class="num">§4</span> 外部介面需求</h2>
+          <h3>4.1 使用者介面</h3>
+          <p>
+            單頁 React 應用，主要區塊：KPI
+            摘要、來源／查詢模式／新鮮度狀態列、篩選列（機關下拉、日期範圍下拉、案名／案號搜尋框、招標方式下拉）、標案列表、資料來源說明可展開面板。無障礙需通過
+            axe-core serious／critical 零違規；響應式需在桌機 1440×1000 與行動
+            390×844 皆不得水平溢位。
+          </p>
+          <h3>4.2 對外部系統的介面（唯一外部依賴：PCC）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>介面</th>
+                  <th>方向</th>
+                  <th>說明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>PCC 標案查詢頁 HTML</td>
+                  <td>讀取</td>
+                  <td>
+                    固定 origin/path，<code>dateType=isNow</code>（例行）或
+                    <code>isDate</code>（首次回填），逐頁跟隨「下一頁」連結
+                  </td>
+                </tr>
+                <tr>
+                  <td>PCC 標案詳情連結</td>
+                  <td>使用者點擊導出</td>
+                  <td>
+                    <code>link</code> 欄位限定 PCC HTTPS scheme／host，<code
+                      >rel="noopener noreferrer"</code
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            系統<strong>沒有</strong>對外提供任何 API（無
+            <code>/api/*</code> 端點）——前端僅讀取同源靜態 JSON（<span
+              class="mono"
+              >REQ-F-004</span
+            >）。
+          </p>
+          <h3>4.3／4.4 軟體與通訊介面</h3>
+          <p>
+            <code>public/data/tenders.json</code>
+            是前端與資料擷取管線之間唯一的資料交換介面。全站僅 HTTPS，CSP 透過
+            <code>&lt;meta http-equiv&gt;</code> 落實，禁止 inline
+            script、<code>unsafe-eval</code>、外部來源。
+          </p>
+        </section>
+
+        <section class="doc-section" id="srs-5">
+          <h2><span class="num">§5</span> 功能需求優先序（MoSCoW）</h2>
+          <p class="note-dim">
+            完整條列與驗收條件見
+            <code>requirements.md</code>；本節僅補充優先序。
+          </p>
+          <div class="legend">
+            <span><span class="dot rose"></span>Must have</span>
+            <span><span class="dot amber"></span>Should have</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>需求群組</th>
+                  <th>Must have</th>
+                  <th>Should have</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>功能（REQ-F）</td>
+                  <td class="mono">001–006</td>
+                  <td class="mono">007, 008, 009</td>
+                </tr>
+                <tr>
+                  <td>資料／可靠性（REQ-D）</td>
+                  <td class="mono">001–006, 009</td>
+                  <td class="mono">007, 008, 010</td>
+                </tr>
+                <tr>
+                  <td>資安（REQ-S）</td>
+                  <td class="mono">001–008</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note-dim">
+            REQ-F-007/008/009 與 REQ-D-007/008/010
+            屬於上線後才新增的體驗與資料完整性強化，移除後系統仍可運作（退化為單一機關、無篩選、無
+            30 天回填），故列為 Should have；REQ-S 全數為 Must
+            have，因為安全邊界是產品原則明確不可退讓的底線。
+          </p>
+        </section>
+
+        <section class="doc-section" id="srs-6">
+          <h2><span class="num">§6</span> 非功能需求</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>類別</th>
+                  <th>需求</th>
+                  <th>驗收依據</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>效能</td>
+                  <td>
+                    首次回填在 60 分鐘 timeout 內完成；例行擷取＋品質閘門在 25
+                    分鐘內完成
+                  </td>
+                  <td>workflow timeout-minutes；實測 231 頁約需 20 分鐘</td>
+                </tr>
+                <tr>
+                  <td>可靠性</td>
+                  <td>擷取或驗證任一環節失敗不得部署；既有 Pages 版本保留</td>
+                  <td class="mono">REQ-D-003</td>
+                </tr>
+                <tr>
+                  <td>可維護性</td>
+                  <td>
+                    Statement/line coverage ≥ 90%，branch ≥ 85%，parser 核心 ≥
+                    95%
+                  </td>
+                  <td>見 STP §7</td>
+                </tr>
+                <tr>
+                  <td>可用性（a11y）</td>
+                  <td>axe 規則 serious／critical 零違規</td>
+                  <td class="mono">E2E-T-002</td>
+                </tr>
+                <tr>
+                  <td>相容性</td>
+                  <td>支援 Project Pages 與自訂網域／root 部署</td>
+                  <td class="mono">pagesBase.ts</td>
+                </tr>
+                <tr>
+                  <td>可觀測性</td>
+                  <td>
+                    每次發布含
+                    <code>fetchedAt</code
+                    >／<code>queryMode</code>／<code>recordCount</code>／SHA-256
+                  </td>
+                  <td class="mono">REQ-F-003, REQ-D-006</td>
+                </tr>
+                <tr>
+                  <td>部署頻率</td>
+                  <td>平日每 3 小時排程，另支援人工觸發</td>
+                  <td class="mono">REQ-F-005</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="srs-7">
+          <h2><span class="num">§7</span> 資料需求摘要</h2>
+          <p>
+            Tender
+            記錄欄位（<code>id</code>／<code>name</code>／<code>method</code>／<code>org</code>／<code>budget</code>／<code>announcedDate</code>／<code>deadlineDate</code>／<code>link</code>）與
+            Dataset 層
+            metadata（<code>schemaVersion</code>／<code>source</code>／<code>queryMode</code>／<code>fetchedAt</code>／<code>recordCount</code>／<code>sha256</code>）完整定義於
+            <code>data-contract.schema.json</code>。目前
+            <span class="chip accent mono">schemaVersion 1.1.0</span>（<code
+              >org</code
+            >
+            欄位為新增）。
+          </p>
+        </section>
+      </article>
+
+      <!-- ============================================================ SDD ============================================================ -->
+      <article class="doc-panel" id="panel-sdd" data-panel="sdd">
+        <header class="doc-head">
+          <div class="kicker">System Design Description</div>
+          <h1>SDD — 系統設計文件</h1>
+          <p class="sub">
+            情境圖、模組介面、資料設計、部署視圖、錯誤處理總覽——延伸既有
+            <code class="mono">design.md</code>。
+          </p>
+          <div class="meta-row">
+            <span class="chip accent mono">v1.0</span>
+            <span class="chip sage">狀態：已核准</span>
+            <span class="chip mono">最後更新 2026-07-25</span>
+          </div>
+        </header>
+
+        <section class="doc-section" id="sdd-2">
+          <h2><span class="num">§2</span> 系統情境圖</h2>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart TB
+  classDef ext fill:#f1cfcb,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef core fill:#cfeae6,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef write fill:#f4ddb8,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+
+  BR["使用者瀏覽器<br/>(React SPA)"]:::ext
+  GP["GitHub Pages<br/>(dist/, 純靜態)"]:::core
+  GA["GitHub Actions<br/>data-and-pages.yml"]:::write
+  PCC["web.pcc.gov.tw<br/>(不受信任外部來源)"]:::ext
+
+  BR -- "HTTPS GET 同源 data/tenders.json" --> GP
+  GP -- "回應同源靜態檔" --> BR
+  GA -- "upload-pages-artifact" --> GP
+  GA -- "HTTPS GET（manual redirect、逐頁跟隨）" --> PCC
+        </pre>
+            <div class="cap">
+              三個外部邊界：瀏覽器 ↔ Pages（同源唯讀）；Actions ↔
+              PCC（唯讀、固定路徑、manual redirect）；Actions ↔
+              Pages（單向發布，只有 deploy job 有寫入權限）。詳細信任邊界見
+              threat-model.md。
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sdd-3">
+          <h2><span class="num">§3</span> 邏輯架構（資料流管線）</h2>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart TD
+  classDef step fill:#cfeae6,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef fail fill:#f1cfcb,stroke:#b5423a,color:#1c1a14,stroke-width:1.4px,stroke-dasharray: 3 2
+
+  S1["1 · 判斷首次/例行<br/>loadPreviousPagesDataset()"]:::step
+  S2["2 · 分頁擷取<br/>isNow 或 isDate"]:::step
+  S3["3 · Parser<br/>HTML → Tender[]"]:::step
+  S4["4 · 合併與剪枝<br/>30 天滾動視窗"]:::step
+  S5["5 · Contract 化<br/>Zod + SHA-256"]:::step
+  S6["6 · 寫入<br/>atomic rename"]:::step
+  S7["7 · Build<br/>品質閘門"]:::step
+  S8["8 · Deploy<br/>GitHub Pages"]:::step
+  S9["9 · 前端載入<br/>驗證＋渲染"]:::step
+  F["非零退出<br/>保留上一版"]:::fail
+
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9
+  S2 -.失敗.-> F
+  S3 -.結構漂移.-> F
+  S4 -.同日驟降>50%.-> F
+  S5 -.驗證失敗.-> F
+  S7 -.閘門未過.-> F
+        </pre>
+            <div class="cap">
+              首次回填（isDate）失敗時，會 catch 後改例行 isNow
+              查詢重試，不直接進入非零退出。
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sdd-4">
+          <h2><span class="num">§4</span> 模組設計</h2>
+          <h3>4.1 資料擷取端（<code>scripts/</code>）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>模組</th>
+                  <th>職責</th>
+                  <th>對外介面</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">fetch-tenders.ts</td>
+                  <td>CLI 進入點，orchestration；判斷 bootstrap 分支</td>
+                  <td class="mono">main()</td>
+                </tr>
+                <tr>
+                  <td class="mono">secureFetch.ts</td>
+                  <td>建立固定 PCC 查詢 URL；單頁 HTTP 請求</td>
+                  <td class="mono">buildPccQueryUrl(), fetchPccHtml()</td>
+                </tr>
+                <tr>
+                  <td class="mono">pccPagination.ts</td>
+                  <td>
+                    跟隨「下一頁」連結逐頁擷取；bootstrap 查詢組裝；重試/backoff
+                  </td>
+                  <td class="mono">
+                    fetchAllPccPages(), fetchBootstrapPages()
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">tenderParser.ts</td>
+                  <td>HTML → Tender[]；機關白名單過濾；結構漂移判斷</td>
+                  <td class="mono">parseTenderHtml(), parseTenderPages()</td>
+                </tr>
+                <tr>
+                  <td class="mono">quality.ts</td>
+                  <td>拒絕比例、掃描列數品質斷言</td>
+                  <td class="mono">assertParseQuality()</td>
+                </tr>
+                <tr>
+                  <td class="mono">baseline.ts</td>
+                  <td>
+                    讀取前一版（schema
+                    容錯）、滾動視窗剪枝、合併去重、同日驟降偵測
+                  </td>
+                  <td class="mono">
+                    loadPreviousPagesDataset(), mergeTenders()
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">dataset.ts</td>
+                  <td>建立含 hash 的 TenderDataset，寫入前驗證</td>
+                  <td class="mono">createTenderDataset()</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>4.2 前端（<code>src/</code>）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>模組</th>
+                  <th>職責</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">contracts/tender.ts</td>
+                  <td>Tender／Dataset Zod schema，文字/日期/金額/URL 驗證</td>
+                </tr>
+                <tr>
+                  <td class="mono">contracts/orgWhitelist.ts</td>
+                  <td>機關白名單、優先序比對、resolveOrgLabel()</td>
+                </tr>
+                <tr>
+                  <td class="mono">services/tenderService.ts</td>
+                  <td>同源讀取並驗證 data/tenders.json</td>
+                </tr>
+                <tr>
+                  <td class="mono">utils/dateRange.ts</td>
+                  <td>當日／一週／一個月篩選純函式</td>
+                </tr>
+                <tr>
+                  <td class="mono">utils/freshness.ts</td>
+                  <td>資料新鮮度（2 小時門檻）判斷</td>
+                </tr>
+                <tr>
+                  <td class="mono">App.tsx</td>
+                  <td>主要 presentation／interaction、篩選、排序、說明面板</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sdd-5">
+          <h2><span class="num">§5</span> 資料設計</h2>
+          <ul>
+            <li>
+              <strong>去重鍵</strong
+              >：<code>id</code>／<code>announcedDate</code>／<code>link</code>
+              組合，新資料覆蓋舊資料。
+            </li>
+            <li>
+              <strong>滾動視窗</strong>：以 Taipei 日曆日計算，剪枝
+              <code>announcedDate</code> 早於（今日 − 30 天）的記錄。
+            </li>
+            <li>
+              <strong>機關欄位</strong>：<code>org</code> 限定
+              <code>ORG_LABELS</code> 列舉值，比對優先序固定（中央機關 > 直轄市
+              > 縣市政府 > 國營事業）；非白名單機關靜默排除，不計入拒絕率。
+            </li>
+            <li>
+              <strong>Schema 版本容錯</strong>：先 peek
+              <code>schemaVersion</code
+              >，不相符視為「無可用基準」而非拋錯，避免新舊 schema 交接死結。
+            </li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="sdd-6">
+          <h2><span class="num">§6</span> 部署視圖</h2>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart TB
+  classDef job fill:#cfeae6,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+  classDef perm fill:#f4ddb8,stroke:#14213d,color:#1c1a14,stroke-width:1.4px
+
+  A["fetch-data<br/>timeout 60m<br/>擷取＋驗證"]:::job
+  B["build<br/>timeout 25m<br/>format/lint/typecheck/coverage/<br/>build/html/dist/E2E/audit"]:::job
+  C["deploy<br/>pages: write, id-token: write"]:::perm
+
+  A -- "needs / artifact: tender-dataset" --> B
+  B -- "needs / upload-pages-artifact" --> C
+        </pre>
+            <div class="cap">
+              觸發：main push、workflow_dispatch、平日 Asia/Taipei 每 3 小時
+              cron。job 拆分理由：首次 30 天回填實測約 20
+              分鐘，與品質閘門擠在同一 25 分鐘 timeout 風險過高。
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sdd-7">
+          <h2><span class="num">§7</span> 錯誤處理與 Fail-closed 策略</h2>
+          <p>
+            設計原則：<strong>任何非預期狀態一律 fail closed</strong
+            >（非零退出、不發布），已知的合法邊界情況（PCC
+            確認零筆標記、跨日不比較）明確排除在 fail-closed
+            條件之外，避免誤將正常情況判定為異常。前端只需處理「舊資料 vs
+            完全無資料」兩種降級，不需自行判斷資料正確性。
+          </p>
+        </section>
+
+        <section class="doc-section" id="sdd-8">
+          <h2><span class="num">§8</span> 安全設計</h2>
+          <p>
+            完整資產／威脅／控制對應見
+            <code>threat-model.md</code>。設計層面關鍵原則：最小權限（只有
+            deploy job 有 Pages／OIDC 寫入權限）、輸入不信任（PCC HTML
+            全程視為不受信任）、供應鏈把關（Action 鎖 SHA、CodeQL、Dependency
+            Review、npm audit）、CSP 僅 <code>&lt;meta&gt;</code>（GitHub Pages
+            平台限制）。
+          </p>
+        </section>
+
+        <section class="doc-section" id="sdd-9">
+          <h2><span class="num">§9</span> 設計決策紀錄索引</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ADR</th>
+                  <th>決策</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">ADR-001</td>
+                  <td>例行擷取採 <code>dateType=isNow</code> 當日查詢</td>
+                  <td><span class="chip sage">Accepted</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">ADR-002</td>
+                  <td>
+                    首次執行無基準時改用 <code>dateType=isDate</code> 回填過去
+                    30 天
+                  </td>
+                  <td><span class="chip sage">Accepted</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </article>
+
+      <!-- ============================================================ STP ============================================================ -->
+      <article class="doc-panel" id="panel-stp" data-panel="stp">
+        <header class="doc-head">
+          <div class="kicker">Software Test Plan</div>
+          <h1>STP — 軟體測試計畫</h1>
+          <p class="sub">
+            測試策略、環境、進入／退出準則、風險分級——逐案 ID 對照見
+            <code class="mono">traceability.md</code>。
+          </p>
+          <div class="meta-row">
+            <span class="chip accent mono">v1.0</span>
+            <span class="chip sage">狀態：已核准</span>
+            <span class="chip mono">最後更新 2026-07-25</span>
+          </div>
+        </header>
+
+        <section class="doc-section" id="stp-3">
+          <h2><span class="num">§3</span> 測試策略</h2>
+          <p>
+            採 TDD（測試先行）：每項需求先以 failing test
+            證明缺少行為，再實作最小修改，最後重構重跑。
+          </p>
+          <h3>3.1 測試層級與工具</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>層級</th>
+                  <th>工具</th>
+                  <th>涵蓋範圍</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Unit</td>
+                  <td class="mono">Vitest</td>
+                  <td>
+                    日期/金額/文字/URL/hash、新鮮度、日期範圍、機關比對、分頁
+                    URL
+                  </td>
+                </tr>
+                <tr>
+                  <td>Component</td>
+                  <td class="mono">Vitest + Testing Library</td>
+                  <td>App.tsx 互動（篩選、排序、錯誤狀態、說明面板）</td>
+                </tr>
+                <tr>
+                  <td>Parser fixture</td>
+                  <td class="mono">Vitest / Cheerio</td>
+                  <td>正常/缺欄/結構漂移/確認零筆/惡意內容/機關白名單排除</td>
+                </tr>
+                <tr>
+                  <td>Contract</td>
+                  <td class="mono">Vitest</td>
+                  <td>Dataset schema、count、hash、org 列舉值</td>
+                </tr>
+                <tr>
+                  <td>Security（workflow）</td>
+                  <td class="mono">Vitest</td>
+                  <td>Actions 權限、SHA pin、job 相依</td>
+                </tr>
+                <tr>
+                  <td>Security（static）</td>
+                  <td>自製 script</td>
+                  <td>Repository／dist 秘密掃描</td>
+                </tr>
+                <tr>
+                  <td>Security（history）</td>
+                  <td class="mono">Gitleaks v8.30.1</td>
+                  <td>完整 Git history，--redact</td>
+                </tr>
+                <tr>
+                  <td>Security（policy lint）</td>
+                  <td class="mono">actionlint v1.7.12</td>
+                  <td>Workflow YAML 語法與反樣式</td>
+                </tr>
+                <tr>
+                  <td>Security（supply chain）</td>
+                  <td>npm audit / CodeQL / Dependency Review</td>
+                  <td>依賴弱點、程式碼掃描</td>
+                </tr>
+                <tr>
+                  <td>E2E</td>
+                  <td class="mono">Playwright + axe</td>
+                  <td>響應式、a11y、CSP、同源請求、外部連結安全、篩選預設值</td>
+                </tr>
+                <tr>
+                  <td>Smoke</td>
+                  <td class="mono">fetch:data</td>
+                  <td>真實連線 PCC，不納入 deterministic suite</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="stp-3-3">
+          <h2><span class="num">§3.3</span> 風險導向測試優先序</h2>
+          <div class="legend">
+            <span><span class="dot rose"></span>高風險</span>
+            <span><span class="dot amber"></span>中風險</span>
+            <span><span class="dot sage"></span>低風險</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>風險</th>
+                  <th>領域</th>
+                  <th>理由</th>
+                  <th>對應層級</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip rose">高</span></td>
+                  <td>資料完整性（parser、contract、hash、滾動視窗合併）</td>
+                  <td>錯誤會直接污染公開發布的資料，且不易被使用者發現</td>
+                  <td>Unit + Parser fixture + Contract</td>
+                </tr>
+                <tr>
+                  <td><span class="chip rose">高</span></td>
+                  <td>資安邊界（SSRF 防護、CSP、Action 權限、秘密外洩）</td>
+                  <td>一旦失守影響範圍超出本專案</td>
+                  <td>Security 全系列</td>
+                </tr>
+                <tr>
+                  <td><span class="chip amber">中</span></td>
+                  <td>前端篩選／排序邏輯</td>
+                  <td>影響使用體驗但有 fail-closed 資料層做後盾</td>
+                  <td>Component + E2E</td>
+                </tr>
+                <tr>
+                  <td><span class="chip amber">中</span></td>
+                  <td>Workflow job 相依與 timeout 設定</td>
+                  <td>設定錯誤導致發布失敗，但不會發布錯誤資料</td>
+                  <td>Security(workflow) + 人工驗證</td>
+                </tr>
+                <tr>
+                  <td><span class="chip sage">低</span></td>
+                  <td>版面／樣式細節</td>
+                  <td>不影響資料正確性與安全邊界</td>
+                  <td>E2E 視覺快照人工檢視</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="stp-5">
+          <h2><span class="num">§5</span> 退出準則（Exit Criteria）</h2>
+          <p>一項變更視為測試完成，需<strong>同時滿足</strong>：</p>
+          <ul>
+            <li>
+              <code>validate:code</code
+              >（format／lint／typecheck／test:coverage）全部通過。
+            </li>
+            <li>
+              Coverage 達門檻：Statements/Lines ≥ 90%、Branches ≥ 85%、Functions
+              ≥ 90%，parser lines ≥ 95%。
+            </li>
+            <li>
+              <code>security:repo</code
+              >／<code>security:workflows</code>／<code>workflow:lint</code>／<code
+                >security:dist</code
+              >
+              全部通過。
+            </li>
+            <li><code>build</code> 成功且 <code>validate:html</code> 通過。</li>
+            <li>
+              <code>test:e2e</code>（8 案例）全部通過，axe serious／critical
+              為零。
+            </li>
+            <li>
+              <code>security:history</code>（Gitleaks 全歷史掃描）零發現。
+            </li>
+            <li>
+              <code>npm audit --audit-level=high</code> 零筆 High／Critical。
+            </li>
+            <li>
+              涉及資料擷取邏輯變更時，額外要求一次
+              <code>workflow_dispatch</code> 手動觸發驗證。
+            </li>
+          </ul>
+          <div class="callout">
+            任何一項未通過，該次變更<strong>不得</strong>視為完成（對應專案鐵律「驗證後才能說完成」）。
+          </div>
+        </section>
+
+        <section class="doc-section" id="stp-7">
+          <h2><span class="num">§7</span> 現況測試結果快照</h2>
+          <p class="note-dim">
+            2026-07-25
+            最近一次完整驗證的實際輸出，非估計值；後續每次驗證請以當次實際輸出為準。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>檢查項</th>
+                  <th>結果</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Vitest</td>
+                  <td>
+                    <span class="chip sage mono">110 / 110</span> 通過（15
+                    個測試檔）
+                  </td>
+                </tr>
+                <tr>
+                  <td>Coverage</td>
+                  <td class="mono">
+                    Stmts 98.13% · Branches 93.82% · Funcs 97.8% · Lines 98.96%
+                  </td>
+                </tr>
+                <tr>
+                  <td>Playwright E2E</td>
+                  <td>
+                    <span class="chip sage mono">8 / 8</span> 通過（desktop +
+                    mobile × 4）
+                  </td>
+                </tr>
+                <tr>
+                  <td>security:repo</td>
+                  <td><span class="chip sage">通過</span> 82 個檔案，零發現</td>
+                </tr>
+                <tr>
+                  <td>security:dist</td>
+                  <td>
+                    <span class="chip sage">通過</span> 4 個檔案，零發現，無
+                    source map
+                  </td>
+                </tr>
+                <tr>
+                  <td>security:history（Gitleaks）</td>
+                  <td>
+                    <span class="chip sage">通過</span> 23 commits，零發現
+                  </td>
+                </tr>
+                <tr>
+                  <td>npm audit（high）</td>
+                  <td><span class="chip sage mono">0</span> vulnerabilities</td>
+                </tr>
+                <tr>
+                  <td>workflow:lint（actionlint）</td>
+                  <td><span class="chip sage">通過</span> 零發現</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section" id="stp-8">
+          <h2><span class="num">§8</span> 缺陷管理</h2>
+          <p>
+            本專案規模尚未使用獨立缺陷追蹤系統；缺陷等同於 failing test 或 CI
+            紅燈，修復流程比照 §3 TDD 策略（先重現為 failing
+            test，再修復，再重跑全部退出準則）。歷史重大缺陷案例記錄於 ADR-002
+            與 ADR-001 附錄。
+          </p>
+        </section>
+      </article>
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js"
+      integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      (function () {
+        "use strict";
+
+        // ---------- mermaid ----------
+        // Diagrams live inside display:none panels at load time, and mermaid
+        // cannot measure hidden layout, so rendering is deferred per-panel:
+        // startOnLoad is off, and each panel's <pre class="mermaid"> nodes
+        // are rendered the first time that panel becomes visible.
+        if (window.mermaid) {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: "base",
+            securityLevel: "strict",
+          });
+        }
+        function renderMermaidIn(panel) {
+          if (!window.mermaid) return;
+          var nodes = Array.prototype.slice.call(
+            panel.querySelectorAll("pre.mermaid:not([data-processed])"),
+          );
+          if (!nodes.length) return;
+          window.mermaid.run({ nodes: nodes });
+        }
+
+        // ---------- theme toggle ----------
+        var root = document.documentElement;
+        var toggle = document.getElementById("theme-toggle");
+        function currentTheme() {
+          var stamped = root.getAttribute("data-theme");
+          if (stamped === "dark" || stamped === "light") return stamped;
+          return window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        toggle.addEventListener("click", function () {
+          var next = currentTheme() === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+        });
+
+        // ---------- doc switching ----------
+        var switchNav = document.getElementById("doc-switch");
+        var tocNav = document.getElementById("toc");
+        var buttons = Array.prototype.slice.call(
+          switchNav.querySelectorAll("button"),
+        );
+        var panels = Array.prototype.slice.call(
+          document.querySelectorAll(".doc-panel"),
+        );
+
+        function buildToc(docId) {
+          tocNav.innerHTML = "";
+          var panel = document.getElementById("panel-" + docId);
+          var heads = panel.querySelectorAll("section.doc-section > h2");
+          heads.forEach(function (h) {
+            var id = h.parentElement.id;
+            var label = h.textContent.replace(/^§[\w.]+\s*/, "");
+            var num = h.querySelector(".num");
+            var a = document.createElement("a");
+            a.href = "#" + id;
+            a.textContent = (num ? num.textContent + " " : "") + label;
+            a.addEventListener("click", function (evt) {
+              evt.preventDefault();
+              document
+                .getElementById(id)
+                .scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+            tocNav.appendChild(a);
+          });
+        }
+
+        function activate(docId) {
+          buttons.forEach(function (b) {
+            var active = b.getAttribute("data-doc") === docId;
+            b.setAttribute("aria-current", active ? "true" : "false");
+          });
+          var activePanel = null;
+          panels.forEach(function (p) {
+            var isActive = p.getAttribute("data-panel") === docId;
+            p.classList.toggle("active", isActive);
+            if (isActive) activePanel = p;
+          });
+          if (activePanel) renderMermaidIn(activePanel);
+          buildToc(docId);
+          window.scrollTo({
+            top: 0,
+            behavior: "instant" in window ? "instant" : "auto",
+          });
+        }
+
+        buttons.forEach(function (b) {
+          b.addEventListener("click", function () {
+            activate(b.getAttribute("data-doc"));
+          });
+        });
+
+        activate("prd");
+      })();
+    </script>
+  </body>
+</html>
