@@ -127,6 +127,8 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 權威設計與需求位於 [docs/specs/001-pages-migration](docs/specs/001-pages-migration/)，包含 requirements、Software Design Description、threat model、JSON Schema、test plan、traceability、[ADR-001（查詢模式）](docs/specs/001-pages-migration/adr-query-mode.md)、[ADR-002（首次執行日期區間回填）](docs/specs/001-pages-migration/adr-first-run-backfill.md) 與 runbook。
 
+產品／系統分析層級的正式文件（PRD／SRS／SDD／STP）位於 [docs/pm](docs/pm/)，補齊產品層決策與正式文件結構，逐條需求與測試 ID 仍以上述 `docs/specs` 為權威來源，詳見 [docs/pm/README.md](docs/pm/README.md) 的文件關係說明。
+
 ## 目錄結構
 
 - `src/`、`scripts/`、`tests/`、`config/`、`public/`、`docs/`：專案本體（程式碼、測試、規格文件）。
