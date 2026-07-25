@@ -57,7 +57,7 @@ describe("REQ-D-004 PCC pagination", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
-  it("PAG-T-005 stops at MAX_PCC_PAGES even if every page claims to have a next page", async () => {
+  it("PAG-T-005 fails closed when the final allowed page still has a next-page link", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -69,9 +69,10 @@ describe("REQ-D-004 PCC pagination", () => {
         }),
     );
 
-    const pages = await fetchAllPccPages({ fetchImpl });
-    expect(pages).toHaveLength(MAX_PCC_PAGES);
-    expect(fetchImpl).toHaveBeenCalledTimes(MAX_PCC_PAGES);
+    await expect(fetchAllPccPages({ fetchImpl }, 2)).rejects.toThrow(
+      /分頁數超過安全上限，可能資料不完整/,
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("PAG-T-006 forwards the merged cookie across sequential page requests", async () => {
@@ -96,17 +97,16 @@ describe("REQ-D-004 PCC pagination", () => {
     expect(secondCallHeaders.get("Cookie")).toBe("JSESSIONID=abc");
   });
 
-  it("PAG-T-007 stops at a custom maxPages override instead of the routine default", async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolve(
-            new Response(pageHtml(true), {
-              headers: { "content-type": "text/html; charset=utf-8" },
-            }),
-          );
+  it("PAG-T-007 succeeds when maxPages exactly equals the real page count", async () => {
+    let call = 0;
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(
+        new Response(pageHtml(call < 3), {
+          headers: { "content-type": "text/html; charset=utf-8" },
         }),
-    );
+      );
+    });
 
     const pages = await fetchAllPccPages({ fetchImpl }, 3);
     expect(pages).toHaveLength(3);
@@ -138,7 +138,7 @@ describe("ADR-002 first-run backfill date range", () => {
     expect(url.searchParams.get("pageSize")).toBe("100");
   });
 
-  it("PAG-T-011 fetches with the bootstrap page-count safety net, not the routine one", async () => {
+  it("PAG-T-011 fails closed at the bootstrap page-count safety limit", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -150,8 +150,10 @@ describe("ADR-002 first-run backfill date range", () => {
         }),
     );
 
-    const pages = await fetchBootstrapPages({ fetchImpl });
-    expect(pages).toHaveLength(MAX_PCC_PAGES_BOOTSTRAP);
+    await expect(fetchBootstrapPages({ fetchImpl })).rejects.toThrow(
+      /分頁數超過安全上限，可能資料不完整/,
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(MAX_PCC_PAGES_BOOTSTRAP);
     expect(MAX_PCC_PAGES_BOOTSTRAP).toBeGreaterThan(MAX_PCC_PAGES);
   });
 });

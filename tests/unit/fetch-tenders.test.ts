@@ -20,6 +20,10 @@ import {
   sha256ForTenders,
 } from "../../scripts/lib/dataset";
 import { assertParseQuality } from "../../scripts/lib/quality";
+import {
+  fetchBootstrapPages,
+  MAX_PCC_PAGES_BOOTSTRAP,
+} from "../../scripts/lib/pccPagination";
 import type { ParseTenderResult } from "../../scripts/lib/tenderParser";
 import type { Tender, TenderDataset } from "../../src/contracts/tender";
 
@@ -211,5 +215,57 @@ describe("RT-002 bootstrap pipeline orchestration", () => {
     expect(isCliEntrypoint(scriptPath, pathToFileURL(scriptPath).href)).toBe(
       true,
     );
+  });
+
+  it("FETCH-T-008 falls back instead of publishing a bootstrap page chain truncated at its limit", async () => {
+    const truncatedTender: Tender = {
+      ...tender,
+      id: "TRUNCATED-BOOTSTRAP",
+      link: "https://web.pcc.gov.tw/prkms/truncated-bootstrap",
+    };
+    const routineTender: Tender = {
+      ...tender,
+      id: "ROUTINE-FALLBACK",
+      link: "https://web.pcc.gov.tw/prkms/routine-fallback",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            '<span id="pagelinks"><a href="?page=next">下一頁</a></span>',
+            { headers: { "content-type": "text/html; charset=utf-8" } },
+          ),
+        ),
+      );
+    const fetchRoutine = vi.fn().mockResolvedValue(parsed([routineTender]));
+    const bootstrapOrFallback = () =>
+      fetchBootstrapOrFallback({
+        fetchBootstrapPages: () => fetchBootstrapPages({ fetchImpl }),
+        parseTenderPages: vi.fn().mockReturnValue(parsed([truncatedTender])),
+        fetchRoutine,
+        warn: vi.fn(),
+      });
+    const writeDataset = vi
+      .fn<(dataset: TenderDataset) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const dependencies = pipelineDependencies({
+      loadPreviousPagesDataset: vi.fn().mockResolvedValue(null),
+      fetchBootstrapOrFallback: bootstrapOrFallback,
+      writeDataset,
+    });
+
+    const dataset = await runFetchPipeline({
+      repository: "owner/project",
+      dependencies,
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(MAX_PCC_PAGES_BOOTSTRAP);
+    expect(fetchRoutine).toHaveBeenCalledOnce();
+    expect(dataset.tenders.map(({ id }) => id)).toEqual(["ROUTINE-FALLBACK"]);
+    expect(dataset.tenders.map(({ id }) => id)).not.toContain(
+      "TRUNCATED-BOOTSTRAP",
+    );
+    expect(writeDataset).toHaveBeenCalledWith(dataset);
   });
 });

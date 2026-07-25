@@ -70,11 +70,11 @@ export async function fetchAllPccPages(
     cookie = page.cookie;
 
     const nextUrl = extractNextPageUrl(page.html, currentUrl);
-    if (!nextUrl) break;
+    if (!nextUrl) return pages;
     currentUrl = nextUrl;
   }
 
-  return pages;
+  throw new Error("分頁數超過安全上限，可能資料不完整");
 }
 
 // PCC 日期區間查詢欄位（tenderStartDate／tenderEndDate）要吃西元年格式（如 2026/06/25），
