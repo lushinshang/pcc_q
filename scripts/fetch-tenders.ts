@@ -47,7 +47,11 @@ async function main(): Promise<void> {
   const previousDataset = await loadPreviousPagesDataset(
     process.env.GITHUB_REPOSITORY,
   );
-  const isBootstrap = previousDataset === null;
+  // 「沒有前一版」與「前一版存在但累積 0 筆」效果上相同：都沒有可用的滾動視窗基礎，
+  // 都該觸發回填。實際發生過：schema 版本切換那次剛好遇到零筆的日子，
+  // 產生了一份有效但是空的前一版，導致回填條件永遠不成立、功能形同沒上線。
+  const isBootstrap =
+    previousDataset === null || previousDataset.tenders.length === 0;
 
   const parsed = isBootstrap
     ? await fetchBootstrapOrFallback()

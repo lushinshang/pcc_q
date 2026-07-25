@@ -4,7 +4,7 @@
 
 ```text
 web.pcc.gov.tw（不限機關，逐頁分頁擷取；例行 isNow／首次回填 isDate 30 天）
-  → scripts/fetch-tenders.ts（依 loadPreviousPagesDataset() 是否為 null 判斷首次或例行）
+  → scripts/fetch-tenders.ts（依 loadPreviousPagesDataset() 是否為 null 或空資料集判斷首次或例行）
   → secureFetch + pccPagination（固定來源、逾時、大小、Content-Type、redirect、跟隨分頁連結）
   → tenderParser（Cheerio fixture 驗證 + orgWhitelist 名稱比對過濾）
   → 與前一版 Pages 資料集合併，剪枝超過 30 天的舊記錄（滾動累積）
@@ -27,7 +27,7 @@ web.pcc.gov.tw（不限機關，逐頁分頁擷取；例行 isNow／首次回填
 - `scripts/lib/baseline.ts`：由受限的 `owner/repository` slug 推導既有 GitHub Pages JSON URL；`assertNoLargeSameDayDrop` 比較兩次同日「本次新增筆數」而非整份滾動累積後的 `recordCount`；`pruneOlderThanRollingWindow`／`mergeTenders` 提供 30 天滾動視窗的剪枝與去重合併；回傳 `null` 同時代表「真的第一次部署」與「前一版 schema 不相容」，兩者都觸發首次回填流程。
 - `scripts/lib/tenderParser.ts`：把預期表格列轉為 validated Tender，不接受 raw HTML；`parseTenderPages` 合併多頁結果並套用可覆寫的總量安全上限（例行 `MAX_TOTAL_SCANNED_ROWS`／首次回填 `MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP`）；機關不在白名單時靜默排除（不計入解析拒絕率）。
 - `scripts/lib/dataset.ts`：計算 hash、建立 dataset、寫入前驗證。
-- `scripts/fetch-tenders.ts`：CLI orchestration；不接受完整 URL；依 `loadPreviousPagesDataset()` 是否為 `null` 決定走首次回填（`isDate` 30 天，失敗時退回例行查詢）或例行（`isNow`）分支，再串起白名單過濾、與前一版資料合併剪枝的完整流程。
+- `scripts/fetch-tenders.ts`：CLI orchestration；不接受完整 URL；依 `loadPreviousPagesDataset()` 是否為 `null` 或回傳的資料集累積 0 筆，決定走首次回填（`isDate` 30 天，失敗時退回例行查詢）或例行（`isNow`）分支，再串起白名單過濾、與前一版資料合併剪枝的完整流程。
 - `src/services/tenderService.ts`：只讀取 `${BASE_URL}data/tenders.json` 並驗證。
 - `src/utils/dateRange.ts`：前端「當日／一週／一個月」篩選的純函式，依 Taipei 日曆日比較 `announcedDate`，不觸發任何額外網路請求。
 - `config/pagesBase.ts`：由 Vite 與 Playwright 共用。Project Pages 預設推導 `/<repository>/`；自訂網域／root 可用經嚴格路徑驗證的 `PAGES_BASE_PATH=/`，拒絕完整 URL、protocol-relative 值與 traversal。
