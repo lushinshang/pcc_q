@@ -150,6 +150,48 @@ main {
   height: 21px;
   color: #267c83;
 }
+.source-info {
+  padding: 18px 28px;
+  border: 1px solid #d7e8eb;
+  border-radius: 22px;
+  background: #fff;
+}
+.source-info summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.source-info summary svg {
+  width: 20px;
+  height: 20px;
+  color: #267c83;
+}
+.source-info h3 {
+  margin: 18px 0 8px;
+  font-size: 1rem;
+}
+.source-info p {
+  margin: 0;
+  color: #4e3d3c;
+  line-height: 1.7;
+}
+.org-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.org-list li {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #f4f8f8;
+  color: #33595c;
+  font-size: 0.85rem;
+}
 .metadata {
   display: flex;
   flex-wrap: wrap;

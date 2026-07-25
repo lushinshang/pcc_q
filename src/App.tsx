@@ -5,6 +5,7 @@ import {
   Clock3,
   ExternalLink,
   Flower2,
+  Info,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -100,18 +101,23 @@ export default function App() {
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase("zh-TW");
   const filteredTenders = useMemo(
     () =>
-      tenders.filter((tender) => {
-        const matchesText =
-          normalizedSearch === "" ||
-          tender.name.toLocaleLowerCase("zh-TW").includes(normalizedSearch) ||
-          tender.id.toLocaleLowerCase("zh-TW").includes(normalizedSearch);
-        return (
-          matchesText &&
-          (methodFilter === "ALL" || tender.method === methodFilter) &&
-          tender.org === orgFilter &&
-          matchesDateRange(tender.announcedDate, dateRangeFilter)
-        );
-      }),
+      tenders
+        .filter((tender) => {
+          const matchesText =
+            normalizedSearch === "" ||
+            tender.name.toLocaleLowerCase("zh-TW").includes(normalizedSearch) ||
+            tender.id.toLocaleLowerCase("zh-TW").includes(normalizedSearch);
+          return (
+            matchesText &&
+            (methodFilter === "ALL" || tender.method === methodFilter) &&
+            tender.org === orgFilter &&
+            matchesDateRange(tender.announcedDate, dateRangeFilter)
+          );
+        })
+        // 公告日期由新到舊；ISO 日期字串（YYYY-MM-DD）可直接字典序比較。
+        .sort((left, right) =>
+          right.announcedDate.localeCompare(left.announcedDate),
+        ),
     [dateRangeFilter, methodFilter, normalizedSearch, orgFilter, tenders],
   );
 
@@ -227,6 +233,25 @@ export default function App() {
             </div>
           )}
         </section>
+
+        <details className="source-info">
+          <summary>
+            <Info aria-hidden="true" /> 關於資料來源與同步頻率
+          </summary>
+          <div>
+            <h3>同步頻率</h3>
+            <p>
+              平日（週一至週五）每 3 小時同步一次：00:00、03:00、06:00、
+              09:00、12:00、15:00、18:00、21:00（Asia/Taipei）。
+            </p>
+            <h3>收錄機關（共 {ORG_LABELS.length} 個，含所有下轄單位）</h3>
+            <ul className="org-list">
+              {ORG_LABELS.map((org) => (
+                <li key={org}>{org}</li>
+              ))}
+            </ul>
+          </div>
+        </details>
 
         <div aria-live="polite" aria-atomic="true">
           {error && (

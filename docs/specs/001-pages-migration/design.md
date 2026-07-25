@@ -31,7 +31,7 @@ web.pcc.gov.tw（不限機關，逐頁分頁擷取；例行 isNow／首次回填
 - `src/services/tenderService.ts`：只讀取 `${BASE_URL}data/tenders.json` 並驗證。
 - `src/utils/dateRange.ts`：前端「當日／一週／一個月」篩選的純函式，依 Taipei 日曆日比較 `announcedDate`，不觸發任何額外網路請求。
 - `config/pagesBase.ts`：由 Vite 與 Playwright 共用。Project Pages 預設推導 `/<repository>/`；自訂網域／root 可用經嚴格路徑驗證的 `PAGES_BASE_PATH=/`，拒絕完整 URL、protocol-relative 值與 traversal。
-- `src/App.tsx`：純 presentation／interaction，不直接接觸 PCC；機關與日期範圍篩選皆為對已載入資料的本地端 filter。
+- `src/App.tsx`：純 presentation／interaction，不直接接觸 PCC；機關（預設國防部）與日期範圍（預設一週）篩選皆為對已載入資料的本地端 filter，篩選結果依公告日期新到舊排序；另有可展開面板（原生 `<details>`，不需額外 JS）列出白名單機關與同步排程說明。
 
 ## 信任邊界
 

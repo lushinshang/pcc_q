@@ -17,8 +17,8 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-// 預設篩選是「機關=國防部、日期範圍=當日」，fixture 必須用當下日期，
-// 否則測試結果會隨執行日期漂移。
+// 預設篩選是「機關=國防部、日期範圍=一週」，fixture 用當下日期即可涵蓋在內，
+// 這樣測試結果不會隨執行日期漂移。
 const TODAY = taipeiDate(Date.now());
 
 function fixtureDataset(fetchedAt = new Date().toISOString()): TenderDataset {
@@ -171,5 +171,57 @@ describe("REQ-F-001/002/003 dashboard behavior", () => {
     expect(
       screen.getByRole("searchbox", { name: "搜尋案名或案號" }),
     ).toHaveValue("");
+  });
+
+  it("APP-T-009 defaults to 一週 date range and sorts results by announced date, newest first", async () => {
+    const twoDaysAgo = taipeiDate(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    mockedLoad.mockResolvedValue(
+      createTenderDataset([
+        {
+          id: "OLD-001",
+          name: "較舊標案",
+          method: "公開招標",
+          org: "國防部",
+          budget: 1,
+          announcedDate: twoDaysAgo,
+          deadlineDate: "2026-08-01",
+          link: "https://web.pcc.gov.tw/prkms/old",
+        },
+        {
+          id: "NEW-001",
+          name: "較新標案",
+          method: "公開招標",
+          org: "國防部",
+          budget: 1,
+          announcedDate: TODAY,
+          deadlineDate: "2026-08-01",
+          link: "https://web.pcc.gov.tw/prkms/new",
+        },
+      ]),
+    );
+    render(<App />);
+
+    expect(await screen.findByText("2／2 筆")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "日期範圍" })).toHaveValue(
+      "WEEK",
+    );
+
+    const [, firstRow, secondRow] = screen.getAllByRole("row");
+    expect(firstRow).toHaveTextContent("NEW-001");
+    expect(secondRow).toHaveTextContent("OLD-001");
+  });
+
+  it("APP-T-010 provides an expandable panel describing the org whitelist and sync cadence", async () => {
+    mockedLoad.mockResolvedValue(fixtureDataset());
+    render(<App />);
+
+    await screen.findByText("2／2 筆");
+    const summary = screen.getByText("關於資料來源與同步頻率");
+    expect(summary).toBeInTheDocument();
+
+    fireEvent.click(summary);
+    expect(screen.getByText(/收錄機關（共 \d+ 個/)).toBeInTheDocument();
+    expect(screen.getByText(/每 3 小時同步一次/)).toBeInTheDocument();
+    expect(screen.getAllByText("國防部").length).toBeGreaterThan(0);
   });
 });

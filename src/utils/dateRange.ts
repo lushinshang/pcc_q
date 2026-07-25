@@ -1,7 +1,7 @@
 export const DATE_RANGE_FILTERS = ["TODAY", "WEEK", "MONTH"] as const;
 export type DateRangeFilter = (typeof DATE_RANGE_FILTERS)[number];
 
-export const DEFAULT_DATE_RANGE_FILTER: DateRangeFilter = "TODAY";
+export const DEFAULT_DATE_RANGE_FILTER: DateRangeFilter = "WEEK";
 
 export const DATE_RANGE_LABELS: Record<DateRangeFilter, string> = {
   TODAY: "當日",
