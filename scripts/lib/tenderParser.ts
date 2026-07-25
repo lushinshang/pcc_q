@@ -59,6 +59,25 @@ function extractId($tenderCell: cheerio.Cheerio<Element>): string {
   return $tenderCell.text().trim().split(/\s+/).at(0) ?? "";
 }
 
+function normalizedDomText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function hasConfirmedZeroResult($: cheerio.CheerioAPI): boolean {
+  const hasContentMarker =
+    $("td.tb_b2")
+      .filter(
+        (_, element) =>
+          normalizedDomText($(element).text()) === "無符合條件資料",
+      )
+      .first().length === 1;
+  const pageBanner = $("#pagebanner").first();
+  const hasZeroCountBanner =
+    pageBanner.length === 1 &&
+    normalizedDomText(pageBanner.text()) === "共有 0 筆資料";
+  return hasContentMarker && hasZeroCountBanner;
+}
+
 function parseRow($: cheerio.CheerioAPI, row: Element): Tender | null {
   const $row = $(row);
   const cells = $row.find("td");
@@ -89,10 +108,10 @@ export function parseTenderHtml(html: string): ParseTenderResult {
   const $ = cheerio.load(html);
   const rows = $("tr[class*='tb_b']");
   if (rows.length === 0) {
-    // PCC 對零筆結果會明確顯示「無符合條件資料」，而不是省略表格；
-    // 有這個標記時視為確認零筆（合法情況，例如剛跨日還沒有新公告），
-    // 不是上游結構漂移，讓呼叫端可以安全地只合併前一版資料。
-    if (html.includes("無符合條件資料")) {
+    // 真實 PCC 零筆頁同時具有內容區塊標記與 #pagebanner 的 0 筆計數。
+    // 兩個 DOM 證據與「沒有標案列」必須同時成立，避免 script／註解中殘留
+    // 自由文字時把結構漂移誤認成合法零筆。
+    if (hasConfirmedZeroResult($)) {
       return { tenders: [], scannedRows: 0, rejectedRows: [] };
     }
     throw new Error("找不到標案資料列，可能為上游結構漂移");

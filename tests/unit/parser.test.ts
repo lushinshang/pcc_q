@@ -57,6 +57,34 @@ describe("REQ-D-004 PCC parser fixtures", () => {
     expect(result).toEqual({ tenders: [], scannedRows: 0, rejectedRows: [] });
   });
 
+  it("PAR-T-003c rejects a zero-result marker embedded only in a script", async () => {
+    const html = await readFile(
+      "tests/fixtures/pcc-zero-marker-in-script.html",
+      "utf8",
+    );
+    expect(() => parseTenderHtml(html)).toThrow(
+      /找不到標案資料列，可能為上游結構漂移/,
+    );
+  });
+
+  it("PAR-T-003d rejects a zero-result marker embedded only in an HTML comment", async () => {
+    const html = await readFile(
+      "tests/fixtures/pcc-zero-marker-in-comment.html",
+      "utf8",
+    );
+    expect(() => parseTenderHtml(html)).toThrow(
+      /找不到標案資料列，可能為上游結構漂移/,
+    );
+  });
+
+  it("PAR-T-003e rejects a content marker without the independent zero-count page banner", () => {
+    const html =
+      '<table><tr><td class="tb_b2">無符合條件資料</td></tr></table>';
+    expect(() => parseTenderHtml(html)).toThrow(
+      /找不到標案資料列，可能為上游結構漂移/,
+    );
+  });
+
   it("PAR-T-004 supports the known script-name fallback while still sanitizing output", () => {
     const result = parseTenderHtml(
       row(
