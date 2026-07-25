@@ -4,16 +4,20 @@
 
 每一項需求先以 failing test 證明缺少行為，再實作最小修改，最後重構並重跑。首次 Red 證據為 `npm test` 對尚未存在的 contracts、parser、secure fetch 與 service 模組產生四個 import failure。本目錄沒有 Git history，故不虛構測試提交；本次額外 Red／Green 執行證據如下：
 
-| 測試 ID   | Red 指令與預期失敗                                                                         | Green／重構證據                                                           |
-| --------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| WF-T-003  | `npm run security:workflows`：缺少 `actions/configure-pages@983d…`，1 failed／4 passed     | 在 deploy job 加入固定 SHA 後 5／5 passed；`npm run workflow:lint` passed |
-| APP-T-008 | `npm test -- tests/component/App.test.tsx`：`?q=綜合任務` 造成 0／2 筆，1 failed／7 passed | 移除 URL query 初始化後 8／8 passed；完整 suite 74／74 passed             |
+| 測試 ID                          | Red 指令與預期失敗                                                                                             | Green／重構證據                                                                  |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| WF-T-003                         | `npm run security:workflows`：缺少 `actions/configure-pages@983d…`，1 failed／4 passed                         | 在 deploy job 加入固定 SHA 後 5／5 passed；`npm run workflow:lint` passed        |
+| APP-T-008                        | `npm test -- tests/component/App.test.tsx`：`?q=綜合任務` 造成 0／2 筆，1 failed／7 passed                     | 移除 URL query 初始化後 8／8 passed；完整 suite 74／74 passed                    |
+| FETCH-T-001～007                 | `npm test -- tests/unit/fetch-tenders.test.ts`：缺少可注入 orchestration 匯出，5／5 failed                     | 抽出 `runFetchPipeline()`／fallback／CLI 邊界後 7／7 passed；納入 coverage       |
+| PAR-T-003c～003e                 | `npm test -- tests/unit/parser.test.ts`：script、註解或缺 pagebanner 的單一零筆訊號被誤收，3 failed／13 passed | 改為三重 DOM 證據後 16／16 passed，PAR-T-003b 真實 fixture 仍接受                |
+| PAG-T-005／007／011、FETCH-T-008 | 上限案例對舊實作錯誤 resolve；400 頁整合案例未能安全完成                                                       | 分頁上限 fail closed、剛好抓完正常、bootstrap fallback；針對 suite 22／22 passed |
 
 ## 測試層級
 
 - Unit：日期、金額、文字、URL、hash、資料新鮮度、日期範圍篩選（`dateRange.ts`）。
-- Parser fixture：正常、缺欄、欄位漂移、結構漂移零列、PCC 確認零筆標記、惡意 scheme、script、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-009）。
-- Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、分頁次數安全上限（含可覆寫的 `maxPages`）、cookie 串接（PAG-T-001～007）。
+- Parser fixture：正常、缺欄、欄位漂移、結構漂移零列、PCC 確認零筆三重 DOM 證據、script／comment 偽造零筆、惡意 scheme、event attribute、HTML entity、Unicode 控制字元，以及機關白名單靜默排除（PAR-T-003～003e、PAR-T-009）。
+- Pagination：跟隨下一頁連結、拒絕跳出固定路徑的分頁連結、上限仍有下一頁時 fail closed、剛好抓完正常完成、cookie 串接（PAG-T-001～007）。
+- Pipeline orchestration：首次或空基準 bootstrap、bootstrap fallback、雙重失敗不寫檔、metadata／hash、原子寫檔、CLI 邊界與截斷 bootstrap fallback（FETCH-T-001～008）。
 - 首次回填（ADR-002）：西元年日期格式轉換（含跨月／跨年邊界）、日期區間查詢 URL 組裝、bootstrap 專用分頁與總量安全上限（PAG-T-008～011、PAR-T-012）。
 - Rolling window：30 天剪枝、合併去重、同日新增筆數驟降偵測（BASE-T-007／008）。
 - Contract：dataset 欄位、count、hash、`org` 列舉值與消費端驗證。

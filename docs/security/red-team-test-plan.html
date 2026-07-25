@@ -1,0 +1,1558 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OPERATION LEDGERWATCH — 紅隊資安測試計畫</title>
+    <style>
+      :root {
+        --ink: #12161b;
+        --panel: #1a2029;
+        --panel-raised: #202834;
+        --hair: #2c343f;
+        --text: #dcdfe4;
+        --text-dim: #8b93a3;
+        --ember: #c1402c;
+        --ember-dim: #c1402c26;
+        --amber: #d1912f;
+        --amber-dim: #d1912f22;
+        --sage: #5f9270;
+        --sage-dim: #5f927022;
+        --wire: #4f8fa6;
+        --wire-dim: #4f8fa622;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--ink);
+        color: var(--text);
+        font-family:
+          -apple-system, "Segoe UI", "Helvetica Neue", Arial, "PingFang TC",
+          "Microsoft JhengHei", sans-serif;
+      }
+
+      body {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      ::selection {
+        background: var(--ember);
+        color: #fff;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #f2f3f6;
+        line-height: 1.3;
+        text-wrap: balance;
+      }
+
+      code,
+      .mono {
+        font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+        font-size: 0.87em;
+      }
+      code {
+        background: var(--panel-raised);
+        border: 1px solid var(--hair);
+        padding: 0.08em 0.42em;
+        border-radius: 4px;
+        color: #eef0f4;
+      }
+
+      a {
+        color: var(--wire);
+        text-decoration-thickness: 1px;
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      a:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--wire);
+        outline-offset: 2px;
+      }
+
+      /* ---------------- Rail ---------------- */
+      .rail {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        width: 236px;
+        flex: 0 0 236px;
+        background: #0d1014;
+        border-right: 1px solid var(--hair);
+        padding: 26px 0 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .rail-brand {
+        padding: 0 20px 16px;
+        border-bottom: 1px solid var(--hair);
+      }
+      .rail-brand .codename {
+        font-family: ui-monospace, monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        color: var(--ember);
+        font-weight: 700;
+      }
+      .rail-brand .title {
+        font-family: ui-monospace, monospace;
+        font-size: 0.98rem;
+        color: #f2f3f6;
+        margin-top: 6px;
+        line-height: 1.45;
+      }
+      .rail nav {
+        display: flex;
+        flex-direction: column;
+      }
+      .rail nav a {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        padding: 7px 20px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+      }
+      .rail nav a .n {
+        color: var(--ember);
+        font-weight: 700;
+        width: 1.6em;
+        flex: none;
+      }
+      .rail nav a:hover {
+        color: var(--text);
+        background: #ffffff08;
+      }
+      .rail-foot {
+        margin-top: auto;
+        padding: 14px 20px 0;
+        border-top: 1px solid var(--hair);
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+
+      /* ---------------- Main ---------------- */
+      main {
+        flex: 1;
+        min-width: 0;
+        padding: 56px 8vw 110px;
+      }
+      .doc {
+        max-width: 78ch;
+        margin: 0 auto;
+      }
+
+      .cover {
+        border: 1px solid var(--hair);
+        background: var(--panel);
+        border-radius: 10px;
+        padding: 26px 28px;
+        margin-bottom: 48px;
+      }
+      .cover .stamp {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: var(--ember);
+        border: 1px solid var(--ember);
+        padding: 3px 10px;
+        border-radius: 3px;
+        margin-bottom: 16px;
+      }
+      .cover h1 {
+        font-size: 1.7rem;
+        margin: 0 0 6px;
+      }
+      .cover .sub {
+        color: var(--text-dim);
+        font-size: 0.96rem;
+        max-width: 62ch;
+        margin-bottom: 20px;
+      }
+      .cover-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px 24px;
+        border-top: 1px dashed var(--hair);
+        padding-top: 18px;
+      }
+      .cover-grid dt {
+        font-family: ui-monospace, monospace;
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 3px;
+      }
+      .cover-grid dd {
+        margin: 0;
+        font-size: 0.88rem;
+        color: var(--text);
+      }
+
+      section.dossier {
+        padding-top: 6px;
+        margin-bottom: 52px;
+        scroll-margin-top: 24px;
+      }
+      section.dossier h2 {
+        font-size: 1.2rem;
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 18px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--ember);
+      }
+      section.dossier h2 .tag {
+        font-size: 0.7rem;
+        color: var(--ember);
+        background: var(--ember-dim);
+        padding: 2px 9px;
+        border-radius: 3px;
+        font-weight: 700;
+      }
+      section.dossier h3 {
+        font-size: 0.98rem;
+        margin-top: 26px;
+        margin-bottom: 10px;
+        color: var(--wire);
+        letter-spacing: 0.04em;
+      }
+
+      p {
+        line-height: 1.75;
+        margin: 0 0 14px;
+        color: var(--text);
+      }
+      ul,
+      ol {
+        line-height: 1.75;
+        padding-left: 1.3em;
+        margin: 0 0 14px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      strong {
+        color: #f2f3f6;
+      }
+      .lede {
+        font-size: 1.02rem;
+        color: var(--text);
+      }
+      .note-dim {
+        color: var(--text-dim);
+        font-size: 0.88rem;
+      }
+
+      .callout {
+        background: var(--panel);
+        border: 1px solid var(--hair);
+        border-left: 4px solid var(--ember);
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 0.92rem;
+        color: var(--text-dim);
+        margin: 18px 0 28px;
+      }
+      .callout.wire {
+        border-left-color: var(--wire);
+      }
+      .callout code {
+        background: #ffffff10;
+      }
+
+      /* ---------------- Tables ---------------- */
+      .table-wrap {
+        overflow-x: auto;
+        margin: 0 0 22px;
+        border: 1px solid var(--hair);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.85rem;
+      }
+      thead th {
+        text-align: left;
+        background: #0d1014;
+        color: #eef0f4;
+        font-weight: 600;
+        padding: 10px 14px;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        font-family: ui-monospace, monospace;
+      }
+      tbody td {
+        padding: 10px 14px;
+        border-top: 1px solid var(--hair);
+        vertical-align: top;
+      }
+      tbody tr:nth-child(even) {
+        background: #ffffff05;
+      }
+      tbody tr:hover {
+        background: var(--ember-dim);
+      }
+
+      /* ---------------- Severity / status chips ---------------- */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 3px 9px;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        text-transform: uppercase;
+      }
+      .chip.critical {
+        background: var(--ember);
+        color: #fff;
+      }
+      .chip.high {
+        background: var(--ember-dim);
+        color: var(--ember);
+        border-color: color-mix(in srgb, var(--ember) 45%, transparent);
+      }
+      .chip.medium {
+        background: var(--amber-dim);
+        color: var(--amber);
+        border-color: color-mix(in srgb, var(--amber) 45%, transparent);
+      }
+      .chip.low {
+        background: #ffffff10;
+        color: var(--text-dim);
+        border-color: var(--hair);
+      }
+      .chip.open {
+        background: var(--ember-dim);
+        color: var(--ember);
+      }
+      .chip.planned {
+        background: var(--wire-dim);
+        color: var(--wire);
+      }
+      .chip.verified {
+        background: var(--sage-dim);
+        color: var(--sage);
+      }
+      .chip.mono {
+        font-family: ui-monospace, monospace;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        font-size: 0.76rem;
+        color: var(--text-dim);
+        margin: 6px 0 20px;
+      }
+
+      .field-label {
+        width: 9em;
+      }
+      .chip.ghost {
+        background: transparent;
+        border: 1px solid var(--hair);
+        color: var(--text-dim);
+      }
+      .chip.red-step {
+        background: var(--ember-dim);
+        color: var(--ember);
+      }
+      .chip.green-step {
+        background: var(--sage-dim);
+        color: var(--sage);
+      }
+      .chip.refactor-step {
+        background: var(--wire-dim);
+        color: var(--wire);
+      }
+
+      .priority-order {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 4px 0 26px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.82rem;
+      }
+      .priority-order li {
+        list-style: none;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--hair);
+        border-radius: 6px;
+        background: var(--panel);
+      }
+      .priority-order .ord {
+        color: var(--ember);
+        font-weight: 700;
+      }
+
+      /* ---------------- diagram ---------------- */
+      .diagram-card {
+        background: var(--panel);
+        border: 1px solid var(--hair);
+        border-radius: 12px;
+        padding: 18px 18px 8px;
+        margin: 10px 0 26px;
+        overflow-x: auto;
+      }
+      .diagram-card .cap {
+        font-size: 0.76rem;
+        color: var(--text-dim);
+        margin: 10px 2px 4px;
+        border-top: 1px dashed var(--hair);
+        padding-top: 8px;
+      }
+      .diagram-card svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      /* ---------------- phase timeline ---------------- */
+      .phases {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 4px 0 24px;
+        border-left: 2px solid var(--hair);
+        padding-left: 22px;
+      }
+      .phase {
+        position: relative;
+        padding: 4px 0 22px;
+      }
+      .phase::before {
+        content: "";
+        position: absolute;
+        left: -27px;
+        top: 4px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--ember);
+        border: 2px solid var(--ink);
+      }
+      .phase .when {
+        font-family: ui-monospace, monospace;
+        font-size: 0.7rem;
+        color: var(--ember);
+        letter-spacing: 0.06em;
+      }
+      .phase h4 {
+        margin: 4px 0 4px;
+        font-size: 0.98rem;
+        color: #f2f3f6;
+        font-weight: 600;
+      }
+      .phase p {
+        margin: 0;
+        color: var(--text-dim);
+        font-size: 0.89rem;
+      }
+
+      blockquote {
+        margin: 0 0 22px;
+        padding: 4px 0 4px 16px;
+        border-left: 3px solid var(--hair);
+        color: var(--text-dim);
+        font-size: 0.9rem;
+        font-style: italic;
+      }
+
+      @media (max-width: 880px) {
+        body {
+          flex-direction: column;
+        }
+        .rail {
+          position: static;
+          width: 100%;
+          flex: none;
+          height: auto;
+        }
+        main {
+          padding: 34px 6vw 80px;
+        }
+      }
+
+      @media print {
+        .rail {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="rail" aria-label="測試計畫章節">
+      <div class="rail-brand">
+        <div class="codename">OPERATION LEDGERWATCH</div>
+        <div class="title">紅隊資安測試計畫<br />國防部標案儀表板</div>
+      </div>
+      <nav aria-label="章節導覽">
+        <a href="#brief"><span class="n">00</span> 任務簡報</a>
+        <a href="#scope"><span class="n">01</span> 授權範圍與交戰規則</a>
+        <a href="#surface"><span class="n">02</span> 攻擊面地圖</a>
+        <a href="#findings"><span class="n">03</span> 已知缺口日誌</a>
+        <a href="#matrix"><span class="n">04</span> 測試矩陣</a>
+        <a href="#method"><span class="n">05</span> 方法論與時程</a>
+        <a href="#severity"><span class="n">06</span> 嚴重度分級</a>
+        <a href="#exit"><span class="n">07</span> 退出準則</a>
+        <a href="#gaps"><span class="n">08</span> 文件／測試缺口</a>
+        <a href="#roe"><span class="n">09</span> 交戰紀律</a>
+        <a href="#remediation"><span class="n">10</span> 改善規劃</a>
+      </nav>
+      <div class="rail-foot">
+        目標：<span class="mono">lushinshang/pcc_q</span><br />
+        範圍：repo 程式碼、CI/CD、部署 artifact<br />
+        不含：PCC 官方基礎設施、GitHub 平台本身
+      </div>
+    </nav>
+
+    <main>
+      <div class="doc">
+        <div class="cover">
+          <div class="stamp">⬤ 內部使用・非破壞性測試</div>
+          <h1>OPERATION LEDGERWATCH</h1>
+          <p class="sub">
+            國防部當日公告標案儀表板 —
+            紅隊資安測試計畫。目標系統目前運作正常且已成功部署至
+            Production，但「運作正常」不等於「沒有問題」——本計畫的存在理由，就是把這句話變成可驗證的陳述。
+          </p>
+          <dl class="cover-grid">
+            <div>
+              <dt>目標系統</dt>
+              <dd class="mono">lushinshang/pcc_q</dd>
+            </div>
+            <div>
+              <dt>計畫版本</dt>
+              <dd>v1.1 · 改善驗證紀錄</dd>
+            </div>
+            <div>
+              <dt>簽發日期</dt>
+              <dd>2026-07-25</dd>
+            </div>
+            <div>
+              <dt>隊長</dt>
+              <dd>Red Team Lead（模擬角色）</dd>
+            </div>
+            <div>
+              <dt>交戰型態</dt>
+              <dd>白箱、非破壞性</dd>
+            </div>
+            <div>
+              <dt>本計畫狀態</dt>
+              <dd>RT-001～003 已完成本機修復驗證</dd>
+            </div>
+          </dl>
+        </div>
+
+        <section class="dossier" id="brief">
+          <h2><span class="tag">00</span> 任務簡報</h2>
+          <p class="lede">
+            系統上線後的第一個陷阱，是把「CI 全綠、Production
+            有回應」誤讀成「沒有安全問題」。這套儀表板的信任模型建立在一個原則上：<strong
+              >任何異常都該 fail closed</strong
+            >。這份計畫的任務，就是驗證這條防線在真正被逼近邊界時是否還站得住——不是重新測一遍功能，是去找防線本身的縫。
+          </p>
+          <p>
+            啟動這份計畫的直接原因，是一次獨立程式碼複查已經在<code>零基礎驗證</code>、<code
+              >bootstrap 測試覆蓋率</code
+            >、<code>分頁上限</code>三處找到具體、可重現的缺口（見
+            §3）。這些不是猜測，是帶著檔案行號與重現步驟的真實發現。紅隊的工作從這裡往外擴：把這三個已知缺口正式排入測試矩陣，同時假設「如果找得到這三個，附近大概率還有沒被找到的」，系統性地把整個攻擊面掃過一輪。
+          </p>
+          <div class="callout">
+            本文件除保留原始測試規劃，也記錄實際改善證據。三項已知缺口已依 §10
+            完成 failing-test-first 修復及本機 deterministic 驗證，狀態為
+            <span class="chip verified">VERIFIED</span>；真實 PCC
+            與發布管線仍須由人工以 <code>workflow_dispatch</code> 做部署前確認。
+          </div>
+        </section>
+
+        <section class="dossier" id="scope">
+          <h2><span class="tag">01</span> 授權範圍與交戰規則</h2>
+          <h3>範圍內</h3>
+          <ul>
+            <li>
+              Repository
+              原始碼：<code>scripts/</code>、<code>src/</code>、<code>tests/</code>、<code>config/</code>。
+            </li>
+            <li>
+              GitHub Actions workflow
+              定義與其權限設計（<code>.github/workflows/</code>）。
+            </li>
+            <li>
+              建置產出 <code>dist/</code> 與發布資料
+              <code>public/data/tenders.json</code> 的內容完整性。
+            </li>
+            <li>
+              本機與 CI 可重現的攻擊模擬（fixture、mock、`workflow_dispatch`
+              手動觸發）。
+            </li>
+          </ul>
+          <h3>範圍外（明確排除）</h3>
+          <ul>
+            <li>
+              <strong>PCC 官方網站與基礎設施</strong>——不對
+              <code>web.pcc.gov.tw</code>
+              進行任何形式的負載測試、爬蟲濫用或滲透測試；本系統對 PCC
+              而言只能是「行為良好的訪客」。
+            </li>
+            <li>
+              <strong>GitHub 平台本身</strong>——不測試 GitHub Pages／Actions
+              平台層的安全性，只測試我們如何使用它。
+            </li>
+            <li>
+              對外部套件維護者、CDN 供應商（如
+              jsdelivr）發動任何實際攻擊——僅止於書面情境分析。
+            </li>
+            <li>
+              任何會員生產資料遺失、Pages 停機、或消耗他人 CI 配額的破壞性操作。
+            </li>
+          </ul>
+          <div class="callout wire">
+            交戰鐵律：<strong>先分析、後動手</strong>。任何會觸發真實
+            <code>workflow_dispatch</code>、真實對外請求或修改 Production
+            分支的測試，執行前需先取得系統負責人確認排程時段。詳見 §9。
+          </div>
+        </section>
+
+        <section class="dossier" id="surface">
+          <h2><span class="tag">02</span> 攻擊面地圖</h2>
+          <p>四個信任邊界，四種不同的假設敵手：</p>
+          <div class="diagram-card">
+            <pre class="mermaid">
+flowchart TB
+  classDef trust fill:#1a2029,stroke:#5f9270,color:#dcdfe4,stroke-width:1.4px
+  classDef hostile fill:#1a2029,stroke:#c1402c,color:#dcdfe4,stroke-width:1.4px
+  classDef pivot fill:#1a2029,stroke:#d1912f,color:#dcdfe4,stroke-width:1.4px,stroke-dasharray: 3 2
+
+  PCC["web.pcc.gov.tw<br/>敵手：結構漂移／惡意注入內容<br/>（假設不可信）"]:::hostile
+  GA["GitHub Actions<br/>fetch-data → build → deploy<br/>敵手：supply chain／artifact 竄改"]:::pivot
+  JSON["tenders.json<br/>敵手：schema 降級／hash 重放"]:::pivot
+  CDN["外部 CDN（本文件站 mermaid.js）<br/>敵手：CDN 淪陷"]:::hostile
+  GP["GitHub Pages dist/<br/>信任邊界：唯讀、CSP meta"]:::trust
+  BR["使用者瀏覽器<br/>敵手：惡意 org／案名 payload"]:::hostile
+
+  PCC -- "HTML 逐頁擷取（不可信輸入）" --> GA
+  GA -- "job 間 artifact 傳遞" --> GA
+  GA -- "寫入" --> JSON --> GP
+  CDN -. "SRI 校驗失敗才會生效" .-> GP
+  GP -- "同源讀取" --> BR
+  BR -. "render 惡意欄位" .-> BR
+        </pre>
+            <div class="cap">
+              綠框＝設計上應該可信任的邊界；紅框＝設計上就假設不可信的輸入源；橘虛線框＝樞紐點——一旦這裡失守，威脅會沿著箭頭往下游擴散。測試矩陣（§4）逐一對應這些節點。
+            </div>
+          </div>
+        </section>
+
+        <section class="dossier" id="findings">
+          <h2><span class="tag">03</span> 已知缺口日誌</h2>
+          <p>
+            以下三項來自本次交付前的獨立程式碼複查，狀態全數
+            <span class="chip verified">VERIFIED</span
+            >。本節保留原始缺陷描述，並補上實際修復與 regression test
+            證據，作為測試矩陣（§4）RT-001～003 的直接依據。
+          </p>
+
+          <h3>RT-001 · 確認零筆可能 fail-open</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">嚴重度</td>
+                  <td><span class="chip high">HIGH</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">位置</td>
+                  <td><code>scripts/lib/tenderParser.ts:88</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">缺陷</td>
+                  <td>
+                    <code>html.includes("無符合條件資料")</code>
+                    是樸素子字串比對；把這段文字埋進
+                    <code>&lt;script&gt;</code> 或 HTML
+                    註解也會被判定為合法零筆。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">影響</td>
+                  <td>
+                    PCC 若結構漂移但頁面殘留該字串，系統會更新
+                    <code>fetchedAt</code> 並正常發布，對外誤稱同步成功——這正是
+                    fail-closed 設計原本要防的情況，卻被繞過。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">建議方向</td>
+                  <td>
+                    改驗證特定零筆 DOM 節點（如
+                    <code>pagebanner=0</code
+                    >）等多重證據，不能只憑一段自由文字。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">修復驗證</td>
+                  <td>
+                    零筆須同時具備合法
+                    <code>td.tb_b2</code> 內容節點、無標案資料列及
+                    <code>#pagebanner</code>「共有 0 筆資料」。<code
+                      >PAR-T-003b～003e</code
+                    >
+                    驗證真實零筆、script、註解及缺少 pagebanner 情境。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>RT-002 · Bootstrap 核心流程沒有測試與 coverage</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">嚴重度</td>
+                  <td><span class="chip high">HIGH</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">位置</td>
+                  <td>
+                    <code>scripts/fetch-tenders.ts:32</code>；coverage 範圍見
+                    <code>vitest.config.ts:20</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">缺陷</td>
+                  <td>
+                    <code>vitest.config.ts</code> 的 coverage
+                    <code>include</code> 只涵蓋
+                    <code>scripts/lib/**/*.ts</code>，不含
+                    <code>fetch-tenders.ts</code>
+                    本身；首次回填判斷、fallback、最終合併與 metadata
+                    組裝完全沒有測試斷言。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">影響</td>
+                  <td>
+                    這正是先前「前一版存在但零筆」導致回填永遠不觸發那次事故沒被測試攔下來的根因——關鍵路徑本身是測試盲區。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">建議方向</td>
+                  <td>
+                    至少覆蓋：<code>previousDataset === null</code>
+                    觸發回填、前一版零筆觸發回填、回填失敗改例行查詢、fallback
+                    也失敗時不寫入 JSON、bootstrap 最終合併與 metadata 正確性。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">修復驗證</td>
+                  <td>
+                    orchestration 已抽為可注入的
+                    <code>runFetchPipeline()</code>，CLI 只依回傳結果設定 exit
+                    code。<code>FETCH-T-001～007</code> 覆蓋 bootstrap
+                    判斷、fallback、雙重失敗不寫檔、metadata、原子寫入及安全 CLI
+                    入口；coverage 已納入
+                    <code>scripts/fetch-tenders.ts</code>。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>RT-003 · 達到最大頁數時靜默截斷</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">嚴重度</td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">位置</td>
+                  <td><code>scripts/lib/pccPagination.ts:59</code></td>
+                </tr>
+                <tr>
+                  <td class="mono">缺陷</td>
+                  <td>
+                    迴圈跑滿 <code>maxPages</code> 後直接
+                    <code>return</code>，即使最後一頁仍有「下一頁」連結；已用
+                    <code>maxPages=2</code>
+                    重現：第二頁仍有下一頁，函式仍視為成功回傳兩頁。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">影響</td>
+                  <td>
+                    <code>tests/unit/pcc-pagination.test.ts:60</code>
+                    甚至把這個行為斷言為正確結果——測試在保護一個錯誤假設。首次回填若真的超過
+                    400 頁，會發布一份被截斷的 40,000 筆資料集，而不是 fail
+                    closed。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">建議方向</td>
+                  <td>
+                    達到
+                    <code>maxPages</code>
+                    上限時，若仍偵測到「下一頁」連結存在，應視為異常並 fail
+                    closed，而非靜默視為完整資料集。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">修復驗證</td>
+                  <td>
+                    <code>fetchAllPccPages()</code>
+                    在最後允許頁仍存在下一頁時拋錯；<code>PAG-T-005</code>／<code>007</code>／<code
+                      >011</code
+                    >
+                    與 <code>FETCH-T-008</code> 驗證例行、剛好抓完、bootstrap
+                    上限及安全 fallback。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="dossier" id="matrix">
+          <h2><span class="tag">04</span> 測試矩陣</h2>
+          <p class="note-dim">
+            RT-001～003 為已知缺口的正式重測；RT-004
+            起為紅隊依攻擊面地圖（§2）延伸出的新測試項目，狀態一律
+            <span class="chip planned">PLANNED</span>（尚未執行）。
+          </p>
+          <div class="legend">
+            <span><span class="chip open">OPEN</span> 已知缺口，待重測</span>
+            <span
+              ><span class="chip planned">PLANNED</span> 已排入但未執行</span
+            >
+            <span
+              ><span class="chip verified">VERIFIED</span>
+              已測試且確認修復</span
+            >
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>類別</th>
+                  <th>測項</th>
+                  <th>手法</th>
+                  <th>嚴重度</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">RT-001</td>
+                  <td>資料完整性</td>
+                  <td>確認零筆訊號偽造</td>
+                  <td>
+                    將標記字串埋入
+                    <code>&lt;script&gt;</code
+                    >／註解／隱藏欄位，觀察是否仍被判定為合法零筆
+                  </td>
+                  <td><span class="chip high">HIGH</span></td>
+                  <td><span class="chip verified">VERIFIED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-002</td>
+                  <td>測試覆蓋</td>
+                  <td>Bootstrap 路徑無監督變更</td>
+                  <td>
+                    對
+                    <code>fetch-tenders.ts</code>
+                    逐一注入邊界條件（null／零筆／回填失敗／fallback
+                    失敗），確認行為與斷言皆存在
+                  </td>
+                  <td><span class="chip high">HIGH</span></td>
+                  <td><span class="chip verified">VERIFIED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-003</td>
+                  <td>可用性／完整性</td>
+                  <td>分頁上限靜默截斷</td>
+                  <td>
+                    以 mock 分頁伺服器製造超過
+                    <code>MAX_PCC_PAGES_BOOTSTRAP</code>
+                    的「下一頁」鏈，確認是否 fail closed
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip verified">VERIFIED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-004</td>
+                  <td>供應鏈</td>
+                  <td>GitHub Action SHA 竄改模擬</td>
+                  <td>
+                    在隔離分支把某 <code>uses:</code> 改回浮動 tag，確認
+                    <code>security:workflows</code>／<code>workflow:lint</code>
+                    是否攔截
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-005</td>
+                  <td>供應鏈</td>
+                  <td>Job 間 artifact 竄改</td>
+                  <td>
+                    評估 <code>fetch-data</code> → <code>build</code> 之間的
+                    <code>upload/download-artifact</code> 是否有除 GitHub
+                    平台本身外的完整性校驗
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-006</td>
+                  <td>前端／XSS</td>
+                  <td>惡意機關／案名 payload</td>
+                  <td>
+                    在 fixture 中放入 HTML 標籤、事件屬性、Unicode
+                    控制字元作為案名／機關文字，確認
+                    <code>sanitizeText</code> 與 React escaping 是否雙重防護
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-007</td>
+                  <td>資料完整性</td>
+                  <td>Schema 降級攻擊</td>
+                  <td>
+                    手動發布一份 <code>schemaVersion</code> 較舊但格式合法的
+                    JSON，確認
+                    <code>loadPreviousPagesDataset()</code>
+                    的版本容錯是否可被利用來繞過新版驗證規則
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-008</td>
+                  <td>可用性</td>
+                  <td>擷取器誤成 PCC 的非預期負載來源</td>
+                  <td>
+                    檢視重試/backoff（<code>pccPagination.ts</code>）在大量失敗時是否可能對
+                    PCC 形成意外的高頻請求模式
+                  </td>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-009</td>
+                  <td>密鑰／紀錄</td>
+                  <td>CI log 秘密外洩</td>
+                  <td>
+                    檢視 <code>fetch-data</code>／<code>build</code> job 的 log
+                    輸出，確認
+                    cookie、<code>GITHUB_TOKEN</code>、錯誤堆疊是否可能外洩敏感字串
+                  </td>
+                  <td><span class="chip low">LOW</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RT-010</td>
+                  <td>文件站供應鏈</td>
+                  <td>Mermaid CDN 完整性</td>
+                  <td>
+                    驗證 <code>docs/pm/index.html</code> 的 SRI hash 在 jsdelivr
+                    內容變更時確實會擋下載入，而非靜默降級
+                  </td>
+                  <td><span class="chip low">LOW</span></td>
+                  <td><span class="chip planned">PLANNED</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="dossier" id="method">
+          <h2><span class="tag">05</span> 方法論與時程</h2>
+          <p>五個階段，循序但可重疊；每階段結束才進入下一階段的重測子集。</p>
+          <div class="phases">
+            <div class="phase">
+              <div class="when">PHASE 0 · 偵察</div>
+              <h4>攻擊面確認</h4>
+              <p>
+                覆核 §2
+                攻擊面地圖是否完整；盤點所有信任邊界與資料流入口，補齊本計畫尚未列出的節點。
+              </p>
+            </div>
+            <div class="phase">
+              <div class="when">PHASE 1 · 靜態分析</div>
+              <h4>程式碼與設定複查</h4>
+              <p>
+                逐一驗證 RT-001／002／003；對 <code>scripts/</code>、<code
+                  >.github/workflows/</code
+                >
+                做手動 code
+                review，尋找同類型的樸素字串比對、未覆蓋分支、隱含信任假設。
+              </p>
+            </div>
+            <div class="phase">
+              <div class="when">PHASE 2 · 動態與對抗性測試</div>
+              <h4>fixture 注入與邊界模擬</h4>
+              <p>
+                執行 RT-004～009；以 mock HTTP 伺服器與 crafted fixture
+                重現攻擊情境，全程不對真實 PCC 或 GitHub 平台發出流量。
+              </p>
+            </div>
+            <div class="phase">
+              <div class="when">PHASE 3 · 供應鏈稽核</div>
+              <h4>依賴與 Action 完整性</h4>
+              <p>
+                執行 RT-004／005／010；核對所有 Action SHA、CDN SRI、npm
+                依賴的實際來源與雜湊。
+              </p>
+            </div>
+            <div class="phase">
+              <div class="when">PHASE 4 · 報告與驗收</div>
+              <h4>發現彙整與退出判定</h4>
+              <p>
+                依 §6 嚴重度分級整理所有發現，對照 §7
+                退出準則判定是否可結案；未修復項目需系統負責人書面風險承擔簽核。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="dossier" id="severity">
+          <h2><span class="tag">06</span> 嚴重度分級</h2>
+          <p>
+            分級標準對齊本專案既有的 fail-closed 設計原則，不是通用 CVSS 硬套。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>等級</th>
+                  <th>定義</th>
+                  <th>範例</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip critical">CRITICAL</span></td>
+                  <td>
+                    錯誤或偽造資料在系統認為「驗證通過」的情況下靜默發布到
+                    Production
+                  </td>
+                  <td>RT-001 若被實際利用</td>
+                </tr>
+                <tr>
+                  <td><span class="chip high">HIGH</span></td>
+                  <td>
+                    關鍵路徑存在真實可利用的邏輯缺陷，或完全沒有測試覆蓋、無法偵測未來的無意破壞
+                  </td>
+                  <td>RT-001、RT-002</td>
+                </tr>
+                <tr>
+                  <td><span class="chip medium">MEDIUM</span></td>
+                  <td>
+                    造成資料不完整、可用性下降，但不會被誤判為「成功」——使用者仍有機會發現異常
+                  </td>
+                  <td>RT-003</td>
+                </tr>
+                <tr>
+                  <td><span class="chip low">LOW</span></td>
+                  <td>
+                    不影響資料正確性與安全邊界的缺陷，或需要額外前提條件才可能被觸發
+                  </td>
+                  <td>RT-009、RT-010</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="dossier" id="exit">
+          <h2><span class="tag">07</span> 退出準則</h2>
+          <p>本次交戰視為可結案，需同時滿足：</p>
+          <ul>
+            <li>
+              矩陣（§4）所有
+              <span class="chip mono ghost">RT-*</span> 項目狀態皆為
+              <span class="chip verified">VERIFIED</span>
+              或經系統負責人書面風險承擔簽核為可接受風險。
+            </li>
+            <li>
+              結案時不存在任何
+              <span class="chip critical">CRITICAL</span> 等級的未修復發現。
+            </li>
+            <li>
+              RT-001／002／003 對應的修復皆補上 failing-test-first 的 regression
+              test，並通過既有 <code>npm run validate</code> 全數閘門。
+            </li>
+            <li>
+              所有經確認的發現已同步寫回
+              <code>docs/specs/001-pages-migration/threat-model.md</code>
+              或對應規格文件，避免下一輪回顧時重新發現同一個洞。
+            </li>
+          </ul>
+          <div class="callout">
+            任何一項未滿足，這次交戰<strong>不得</strong>視為結束——對應專案既有鐵律「驗證後才能說完成」，紅隊工作同樣適用。
+          </div>
+        </section>
+
+        <section class="dossier" id="gaps">
+          <h2><span class="tag">08</span> 文件／測試缺口</h2>
+          <p class="note-dim">
+            來源複查另提到「數項文件／測試缺口」，但未附具體清單；為避免臆造，本計畫不假裝已經知道那些項目是什麼，改為在
+            Phase 0 偵察階段（§5）正式列出並補登於此，執行後回填本節。
+          </p>
+          <div class="callout wire">
+            已知會在偵察階段優先確認的候選方向（尚未驗證，僅為假設）：<code
+              >threat-model.md</code
+            >
+            是否已涵蓋 RT-004～010
+            對應的威脅類別；<code>test-plan.md</code>／<code
+              >traceability.md</code
+            >
+            是否有對應 <code>fetch-tenders.ts</code> orchestration 層級的測試
+            ID。
+          </div>
+        </section>
+
+        <section class="dossier" id="roe">
+          <h2><span class="tag">09</span> 交戰紀律</h2>
+          <ol>
+            <li>
+              先分析、後動手——任何會觸發真實網路請求或真實
+              <code>workflow_dispatch</code>
+              的測試，執行前必須取得系統負責人確認排程時段。
+            </li>
+            <li>
+              不對 PCC 官方基礎設施、GitHub
+              平台本身、或任何第三方服務發動實際攻擊；供應鏈情境一律以書面分析與隔離分支模擬進行。
+            </li>
+            <li>
+              所有測試優先使用
+              fixture／mock，不使用真實個資或真實憑證；不主動蒐集、留存超出驗證目的所需的任何資料。
+            </li>
+            <li>
+              發現一律先私下回報系統負責人，經確認與修復後才可對外揭露；不進行未經授權的公開揭露。
+            </li>
+            <li>
+              本計畫本身不構成修復授權——修復程式碼需另行走專案既有的 TDD 與
+              <code>npm run validate</code>
+              全套流程，不得為求結案而放寬既有品質閘門。
+            </li>
+          </ol>
+        </section>
+
+        <section class="dossier" id="remediation">
+          <h2><span class="tag">10</span> 改善規劃</h2>
+          <p class="lede">
+            三項已知缺口（§03）已依下列優先序完成。改善過程遵循專案既有慣例：<strong
+              >SDD 先定義設計變更與介面影響，TDD
+              先寫失敗測試再實作、通過後才重構</strong
+            >——比照 <code>docs/pm/index.html</code> STP §3「測試策略」與
+            <code>docs/specs/001-pages-migration/test-plan.md</code>「TDD
+            規則」的既有格式，不另創一套規範。本節保留原始規劃並補上實際執行證據。
+          </p>
+
+          <h3>執行優先序</h3>
+          <ol class="priority-order">
+            <li>
+              <span class="ord">1</span>
+              <span class="chip high">RT-002</span>
+              Bootstrap 核心流程補測試 ——
+              專案已真實發生過一次因此路徑無測試而上線的事故（見 ADR-002
+              附錄），修復成本低（只補測試，不動生產邏輯）、風險降幅最大，優先處理。
+            </li>
+            <li>
+              <span class="ord">2</span>
+              <span class="chip high">RT-001</span>
+              確認零筆改多重證據驗證 —— 直接牴觸專案自訂的 fail-closed
+              原則，修復成本低，但需要先取得真實 PCC 零筆頁面 fixture
+              才能定義具體 DOM 錨點，不能用猜的。
+            </li>
+            <li>
+              <span class="ord">3</span>
+              <span class="chip medium">RT-003</span>
+              分頁上限改 fail closed —— 現有 1.7 倍安全緩衝（23,091／400
+              頁）使急迫性較低，但現有測試把錯誤行為斷言成正確結果，屬於需要清除的負資產。
+            </li>
+          </ol>
+
+          <div class="callout">
+            執行結果：RT-002 的五個初始測試先因缺少可注入介面而 Red，RT-001
+            的三個惡意／不完整零筆案例先 Red，RT-003 的上限與 bootstrap fallback
+            案例先 Red；完成最小實作後，相關
+            <code>FETCH-T-*</code>、<code>PAR-T-*</code> 與
+            <code>PAG-T-*</code> 測試全數 Green。詳細 ID 與指令已同步至
+            <code>test-plan.md</code>、<code>traceability.md</code>。
+          </div>
+
+          <h3>RT-002 · Bootstrap 核心流程補測試</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">SDD 設計變更</td>
+                  <td>
+                    <code>scripts/fetch-tenders.ts</code> 的
+                    <code>main()</code> 目前直接呼叫真實
+                    <code>fetch</code>／檔案系統，無法單元測試。比照
+                    <code>baseline.ts</code> 既有的
+                    <code
+                      >loadPreviousPagesDataset(repository, fetchImpl =
+                      fetch)</code
+                    >
+                    可注入依賴慣例，把 orchestration
+                    抽成可注入依賴的匯出函式（例如
+                    <code>runFetchPipeline(deps)</code
+                    >），預設參數對應現有真實實作，CLI
+                    進入點改為呼叫該函式並依回傳結果決定 exit code，而非直接
+                    <code>process.exit()</code>。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono field-label">介面影響</td>
+                  <td>
+                    新增一個可測試的匯出函式；<code>vitest.config.ts</code> 的
+                    coverage <code>include</code> 需把
+                    <code>scripts/fetch-tenders.ts</code> 納入，不再限於
+                    <code>scripts/lib/**/*.ts</code>。CLI 對外行為（exit
+                    code、寫入的 JSON 內容）不改變。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>TDD 執行順序</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">順序</th>
+                  <th scope="col">
+                    <span class="chip red-step">RED</span> 先寫的失敗測試
+                  </th>
+                  <th scope="col">
+                    <span class="chip green-step">GREEN</span> 最小修改後預期
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">1</td>
+                  <td>
+                    注入 <code>previousDataset === null</code>，斷言呼叫的是
+                    bootstrap 分支（mock
+                    <code>fetchBootstrapOrFallback</code>）而非例行查詢
+                  </td>
+                  <td>抽出可注入依賴後測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">2</td>
+                  <td>
+                    注入前一版存在但
+                    <code>tenders.length === 0</code>，斷言同樣走 bootstrap 分支
+                  </td>
+                  <td>沿用同一組判斷邏輯，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">3</td>
+                  <td>
+                    mock bootstrap 擷取拋出錯誤，斷言改呼叫例行
+                    <code>fetchRoutine</code> 且不中止流程
+                  </td>
+                  <td>fallback 邏輯維持現況，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">4</td>
+                  <td>
+                    mock bootstrap 與例行查詢皆拋出錯誤，斷言<strong
+                      >不寫入</strong
+                    >
+                    <code>tenders.json</code> 且回傳／拋出可辨識的失敗結果
+                  </td>
+                  <td>
+                    目前程式碼很可能在此情境行為未定義，需要明確補上錯誤處理才能通過——這是本輪修復的核心產出之一
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">5</td>
+                  <td>
+                    bootstrap 成功時，斷言最終寫入的
+                    <code>TenderDataset</code> 之
+                    <code>recordCount</code>／<code>schemaVersion</code>／<code
+                      >sha256</code
+                    >
+                    與合併後的 <code>Tender[]</code> 一致
+                  </td>
+                  <td>沿用既有 <code>createTenderDataset()</code>，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">重構</td>
+                  <td colspan="2">
+                    全部 Red/Green 完成後，確認
+                    <code>vitest.config.ts</code> coverage
+                    門檻（statements/lines 90%、branches 85%）在納入
+                    <code>fetch-tenders.ts</code> 後仍然達標，再跑一次
+                    <code>npm run validate</code> 全套閘門。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>RT-001 · 確認零筆改多重證據驗證</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">前置條件</td>
+                  <td>
+                    目前沒有真實 PCC 零筆頁面的具體 DOM
+                    結構可參考——修復前必須先實際查詢一次 PCC
+                    產生真正的零筆結果頁，蒐集去識別、不含 cookie／secret 的最小
+                    fixture，確認可用的 DOM 錨點（例如特定 class／id
+                    的容器元素），不能只憑猜測設計驗證邏輯。這點延續專案既有紀律：ADR-002
+                    當初也是先用真實瀏覽器操作驗證西元年格式，才發現「不能用猜的」。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono field-label">SDD 設計變更</td>
+                  <td>
+                    <code>parseTenderHtml()</code> 的零筆判斷從「HTML
+                    全文包含某段字串」改為「在特定內容區塊 DOM
+                    節點內找到零筆標記，且沒有標案資料列，且（若前置條件蒐集到可用信號）分頁區塊也顯示零筆」——多重證據皆成立才視為確認零筆，任一證據缺席則視為結構漂移並拋錯。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono field-label">介面影響</td>
+                  <td>
+                    <code>parseTenderHtml()</code>
+                    對外行為不變（回傳型別、正常零筆情境的結果一致），只收斂「什麼樣的輸入會被接受為合法零筆」的判斷範圍。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>TDD 執行順序</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">順序</th>
+                  <th scope="col">
+                    <span class="chip red-step">RED</span> 先寫的失敗測試
+                  </th>
+                  <th scope="col">
+                    <span class="chip green-step">GREEN</span> 最小修改後預期
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">1</td>
+                  <td>
+                    把零筆標記字串埋入
+                    <code>&lt;script&gt;</code> 內、無任何合法零筆 DOM
+                    結構，斷言
+                    <code>parseTenderHtml()</code>
+                    拋出「找不到標案資料列，可能為上游結構漂移」——目前這個測試會失敗（現況會被誤判為合法零筆）
+                  </td>
+                  <td>改為 DOM 範圍限定的判斷後，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">2</td>
+                  <td>同上但標記埋入 HTML 註解，重複驗證</td>
+                  <td>同樣被拒絕，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">3</td>
+                  <td>
+                    使用前置條件蒐集到的真實零筆
+                    fixture（去識別化），斷言仍正確回傳空結果（<code
+                      >{ tenders: [], scannedRows: 0, rejectedRows: [] }</code
+                    >）——防止修復矯枉過正，把合法零筆也誤判為結構漂移
+                  </td>
+                  <td>正常零筆情境維持正常放行，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">重構</td>
+                  <td colspan="2">
+                    確認既有
+                    <code>PAR-T-003</code
+                    >／<code>PAR-T-003b</code>／<code>PAR-T-006</code>（見
+                    <code>traceability.md</code
+                    >）等結構漂移測試仍全數通過，避免修復引入新的迴歸。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>RT-003 · 分頁上限改 fail closed</h3>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <td class="mono field-label">SDD 設計變更</td>
+                  <td>
+                    <code>fetchAllPccPages()</code>
+                    迴圈結束時需要區分兩種情況：「最後一頁沒有下一頁連結（正常結束）」與「跑滿
+                    <code>maxPages</code>
+                    但最後一頁仍有下一頁連結（被截斷）」。後者應拋出明確錯誤（例如「分頁數超過安全上限，可能資料不完整」），而不是靜默回傳已擷取的頁面。
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono field-label">介面影響</td>
+                  <td>
+                    <code>fetchAllPccPages()</code>
+                    在正常情境（未達上限）行為不變；新增一種會拋錯的失敗情境。由於
+                    <code>fetchBootstrapOrFallback()</code> 已有
+                    <code>try/catch</code> 會在任何拋錯時退回例行
+                    <code>isNow</code>
+                    查詢，這個新錯誤會自動被既有 fallback
+                    機制吸收，<strong>不需要額外新增呼叫端邏輯</strong>——但需要一則整合測試明確驗證這個銜接確實如預期運作，不能只假設。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>TDD 執行順序</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">順序</th>
+                  <th scope="col">
+                    <span class="chip red-step">RED</span> 先寫的失敗測試
+                  </th>
+                  <th scope="col">
+                    <span class="chip green-step">GREEN</span> 最小修改後預期
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">1</td>
+                  <td>
+                    修正
+                    <code>tests/unit/pcc-pagination.test.ts:60</code>
+                    既有斷言——把「<code>maxPages=2</code>
+                    且第二頁仍有下一頁時視為成功回傳兩頁」改為「應拋出錯誤」，此時測試對現有程式碼會失敗
+                  </td>
+                  <td>迴圈結束後加入下一頁存在性檢查並拋錯，測試通過</td>
+                </tr>
+                <tr>
+                  <td class="mono">2</td>
+                  <td>
+                    新增測試：<code>maxPages</code>
+                    剛好等於實際總頁數（最後一頁沒有下一頁連結），斷言<strong>不</strong>拋錯——避免修復矯枉過正，把「剛好抓完」誤判為截斷
+                  </td>
+                  <td>
+                    區分「跑滿上限」與「自然結束」兩種迴圈退出原因，測試通過
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">3</td>
+                  <td>
+                    整合測試：以 mock 分頁伺服器製造超過
+                    <code>MAX_PCC_PAGES_BOOTSTRAP</code> 的鏈，斷言
+                    <code>fetchBootstrapOrFallback()</code> 捕捉到錯誤後改用
+                    <code>fetchRoutine()</code>，且最終不會發布被截斷的 40,000
+                    筆資料集
+                  </td>
+                  <td>
+                    既有 <code>try/catch</code> fallback
+                    機制自然吸收新錯誤，測試通過
+                  </td>
+                </tr>
+                <tr>
+                  <td class="mono">重構</td>
+                  <td colspan="2">
+                    確認例行查詢（非 bootstrap）路徑的
+                    <code>MAX_PCC_PAGES</code> 上限行為維持一致的 fail-closed
+                    邏輯，不是只修 bootstrap 那一條路徑。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout wire">
+            三項修復的本機退出條件已達成：狀態全數轉為
+            <span class="chip verified">VERIFIED</span>；122 個 deterministic
+            tests 與完整 code／security／workflow／build／HTML／dist
+            閘門通過，並已回寫
+            <code>threat-model.md</code
+            >、<code>design.md</code>、<code>test-plan.md</code>、<code
+              >traceability.md</code
+            >
+            與 <code>runbook.md</code>。RT-002／RT-003
+            涉及擷取管線邏輯變更，仍需一次
+            <code>workflow_dispatch</code>
+            手動觸發驗證，不能只憑本機測試通過就假設對真實 PCC 站沒問題。
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js"
+      integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      (function () {
+        "use strict";
+        if (window.mermaid) {
+          window.mermaid.initialize({
+            startOnLoad: true,
+            theme: "dark",
+            securityLevel: "strict",
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

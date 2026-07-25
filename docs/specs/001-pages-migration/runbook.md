@@ -34,6 +34,13 @@ GitHub Pages deployment 由 artifact 產生。回復已知良好 commit，重新
 
 ## 最近驗證
 
+- 日期：2026-07-25；RT-001～003 §10 改善本機驗證（全程 fixture／mock，未向 PCC 發出請求）。
+- deterministic tests：122 tests／16 files 通過；coverage statements 95.77%、lines 96.27%、branches 92.28%、functions 96.03%；parser lines 100%、branches 94.59%。
+- RT regression：`tests/unit/fetch-tenders.test.ts` 與 `pcc-pagination.test.ts` 22／22 通過；`parser.test.ts` 16／16 通過。
+- 完整 `npm run validate` 的 code、repository scan、workflow policy、build、HTML 與 dist 閘門通過；actionlint 因沙箱 DNS 無法由 `go run ...@v1.7.12` 查詢 proxy，改以本機 module cache、`GOPROXY=off GOFLAGS=-mod=mod go run .` 離線驗證三份 workflow，通過。
+- Gitleaks v8.30.1 同樣由本機 module cache 離線掃描 30 commits，零發現；repository secret scan 88 files、dist scan 4 files，皆零發現。
+- `npm audit --offline --audit-level=high`：0 vulnerabilities。Playwright desktop／mobile、axe、CSP 與 overflow：8／8 通過。
+- 尚待人工：在有 GitHub／PCC 網路權限的真實環境，以 `workflow_dispatch` 手動觸發一次 `data-and-pages`，確認 RT-002／RT-003 擷取管線與 production deployment；本次未觸發、未 push。
 - 日期：2026-07-24；本機 Node 26.5.0、npm 12.0.1；CI 鎖定 Node 24。
 - deterministic tests：74 tests／12 files 通過。
 - coverage：statements 97.98%、lines 99.28%、branches 93.48%、functions 100%；`App.tsx` lines 100%，parser statements／lines 100%。

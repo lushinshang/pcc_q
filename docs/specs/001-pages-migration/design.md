@@ -23,11 +23,11 @@ web.pcc.gov.tw（不限機關，逐頁分頁擷取；例行 isNow／首次回填
 - `src/contracts/tender.ts`：Tender／Dataset 契約、文字、日期、金額、URL 驗證與 canonicalization；`org` 欄位限定於 `ORG_LABELS` 列舉值。
 - `src/contracts/orgWhitelist.ts`：機關白名單與 `resolveOrgLabel()`，依優先序（中央機關 > 直轄市 > 縣市政府 > 國營事業）用名稱字串比對收斂下轄單位，無命中回傳 `null`。
 - `scripts/lib/secureFetch.ts`：建立不限機關的 PCC 查詢（`orgId` 為空字串），單頁請求邏輯；`buildPccQueryUrl()` 接受 `dateType`／`tenderStartDate`／`tenderEndDate`／`firstSearch` 覆寫，供例行 `isNow` 與首次回填 `isDate` 共用；`fetchPccHtml` 回傳 HTML 與合併後的 cookie 供分頁串接。
-- `scripts/lib/pccPagination.ts`：跟隨回應 HTML 中的「下一頁」連結逐頁擷取，不硬編碼分頁參數；`fetchAllPccPages()` 的 `maxPages` 可覆寫（例行 `MAX_PCC_PAGES`／首次回填 `MAX_PCC_PAGES_BOOTSTRAP`）；`buildBootstrapQueryUrl()`／`fetchBootstrapPages()` 組出西元年格式的 30 天日期區間查詢。
+- `scripts/lib/pccPagination.ts`：跟隨回應 HTML 中的「下一頁」連結逐頁擷取，不硬編碼分頁參數；`fetchAllPccPages()` 的 `maxPages` 可覆寫（例行 `MAX_PCC_PAGES`／首次回填 `MAX_PCC_PAGES_BOOTSTRAP`），若最後允許頁仍有下一頁則拋錯，禁止把截斷頁面當成完整資料；`buildBootstrapQueryUrl()`／`fetchBootstrapPages()` 組出西元年格式的 30 天日期區間查詢。
 - `scripts/lib/baseline.ts`：由受限的 `owner/repository` slug 推導既有 GitHub Pages JSON URL；`assertNoLargeSameDayDrop` 比較兩次同日「本次新增筆數」而非整份滾動累積後的 `recordCount`；`pruneOlderThanRollingWindow`／`mergeTenders` 提供 30 天滾動視窗的剪枝與去重合併；回傳 `null` 同時代表「真的第一次部署」與「前一版 schema 不相容」，兩者都觸發首次回填流程。
-- `scripts/lib/tenderParser.ts`：把預期表格列轉為 validated Tender，不接受 raw HTML；`parseTenderPages` 合併多頁結果並套用可覆寫的總量安全上限（例行 `MAX_TOTAL_SCANNED_ROWS`／首次回填 `MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP`）；機關不在白名單時靜默排除（不計入解析拒絕率）。
+- `scripts/lib/tenderParser.ts`：把預期表格列轉為 validated Tender，不接受 raw HTML；合法零筆必須同時具備內容區塊 `td.tb_b2` 的零筆文字、沒有標案資料列與 `#pagebanner`「共有 0 筆資料」三項 DOM 證據；`parseTenderPages` 合併多頁結果並套用可覆寫的總量安全上限（例行 `MAX_TOTAL_SCANNED_ROWS`／首次回填 `MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP`）；機關不在白名單時靜默排除（不計入解析拒絕率）。
 - `scripts/lib/dataset.ts`：計算 hash、建立 dataset、寫入前驗證。
-- `scripts/fetch-tenders.ts`：CLI orchestration；不接受完整 URL；依 `loadPreviousPagesDataset()` 是否為 `null` 或回傳的資料集累積 0 筆，決定走首次回填（`isDate` 30 天，失敗時退回例行查詢）或例行（`isNow`）分支，再串起白名單過濾、與前一版資料合併剪枝的完整流程。
+- `scripts/fetch-tenders.ts`：由可注入依賴的 `runFetchPipeline()` 執行 orchestration；不接受完整 URL；依 `loadPreviousPagesDataset()` 是否為 `null` 或回傳的資料集累積 0 筆，決定走首次回填（`isDate` 30 天，失敗時退回例行查詢）或例行（`isNow`）分支，再串起白名單過濾、與前一版資料合併剪枝的完整流程。完整 dataset 通過契約驗證後才原子寫入；CLI 入口只依函式結果設定 exit code，pipeline 內不直接終止 process。
 - `src/services/tenderService.ts`：只讀取 `${BASE_URL}data/tenders.json` 並驗證。
 - `src/utils/dateRange.ts`：前端「當日／一週／一個月」篩選的純函式，依 Taipei 日曆日比較 `announcedDate`，不觸發任何額外網路請求。
 - `config/pagesBase.ts`：由 Vite 與 Playwright 共用。Project Pages 預設推導 `/<repository>/`；自訂網域／root 可用經嚴格路徑驗證的 `PAGES_BASE_PATH=/`，拒絕完整 URL、protocol-relative 值與 traversal。
@@ -40,9 +40,10 @@ web.pcc.gov.tw（不限機關，逐頁分頁擷取；例行 isNow／首次回填
 ## 故障設計
 
 - 網路、redirect、Content-Type、大小或解析失敗：process 非零退出。
-- 零有效資料或結構漂移：process 非零退出。
+- 零有效資料或結構漂移：只有內容區塊零筆文字、零標案列及 `#pagebanner=0` 三項 DOM 證據同時成立才接受合法零筆，否則 process 非零退出。
 - 同一台北日期且上一版「當日新增筆數」至少四筆時，新一輪當日新增少於上一版當日新增的 50%：process 非零退出；跨日不比較。
 - 多頁合計掃描列數超過安全上限（例行 `MAX_TOTAL_SCANNED_ROWS` 3,000／首次回填 `MAX_TOTAL_SCANNED_ROWS_BOOTSTRAP` 40,000）：例行查詢 process 非零退出；首次回填時捕捉錯誤退回例行 `isNow` 查詢，不阻擋當次發布。
+- 抓滿 `MAX_PCC_PAGES` 或 `MAX_PCC_PAGES_BOOTSTRAP` 且最後一頁仍有下一頁：視為資料截斷並拋錯；例行路徑非零退出，bootstrap 路徑退回例行查詢，兩者都不發布截斷資料。
 - 分頁連結跳出固定 PCC 查詢路徑：process 非零退出（首次回填時同樣退回例行查詢重試）。
 - Actions 前置 job 失敗：deploy job 不執行，既有 Pages 版本保留。
 - CI／data workflow 以完整 checkout 執行 Gitleaks v8.30.1；`--redact` 避免 finding 把秘密值寫回 log。
