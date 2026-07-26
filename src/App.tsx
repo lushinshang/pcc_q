@@ -22,7 +22,7 @@ import {
   matchesDateRange,
   type DateRangeFilter,
 } from "./utils/dateRange";
-import { getDatasetFreshness } from "./utils/freshness";
+import { getDatasetFreshness, isTaipeiWeekend } from "./utils/freshness";
 
 const CHART_COLORS = [
   "accent-pink",
@@ -228,7 +228,11 @@ export default function App() {
             >
               <Clock3 aria-hidden="true" />
               <span>
-                {freshness.isStale ? "資料可能過期" : "資料在兩小時新鮮度內"}
+                {freshness.isStale
+                  ? isTaipeiWeekend(dataset?.fetchedAt ?? "")
+                    ? "週末例行暫停同步（下一版：週一 00:00）"
+                    : "資料可能過期"
+                  : "資料在兩小時新鮮度內"}
               </span>
             </div>
           )}

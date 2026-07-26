@@ -34,6 +34,14 @@ GitHub Pages deployment 由 artifact 產生。回復已知良好 commit，重新
 
 ## 最近驗證
 
+### 2026-07-26：週末例行暫停同步提示優化（方案 B）
+
+- **需求異動背景**：平日 Cron 每 3 小時執行定時同步，週六與週日屬於例行非同步時段。過去超過 2 小時一律標示「資料可能過期」，易於週末造成誤解。
+- **異動內容**：
+  - 在 `src/utils/freshness.ts` 新增 `isTaipeiWeekend(fetchedAt)` 判定擷取時間是否屬於台北時間的週六或週日。
+  - 保留 `isStale` 判定（> 2 小時），在 `src/App.tsx` 中當資料過期且 `fetchedAt` 落在週末時，將警告文案替換為「週末例行暫停同步（下一版：週一 00:00）」。
+  - 補齊 `freshness.test.ts` (FRESH-T-004) 與 `App.test.tsx` (APP-T-003) 測試案例，通過 123/123 單元與元件測試及 `npm run validate` 本機驗證門檻。
+
 ### 2026-07-25：RT-001～003 紅隊改善規劃執行紀錄
 
 背景與完整測試計畫見 [紅隊資安測試計畫](../../security/red-team-test-plan.html)；本節記錄實際執行過程，供之後接手者或稽核參考，不是給一般讀者的摘要（摘要見 README「紅隊資安複查與改善紀錄」）。

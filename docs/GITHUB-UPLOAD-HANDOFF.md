@@ -167,7 +167,7 @@ gh api repos/OWNER/REPOSITORY/pages --jq .html_url
 - 首頁、JS、CSS 與 `data/tenders.json` 都回應成功，沒有 mixed content。
 - 顯示真實 `fetchedAt`、`queryMode=isNow`、`recordCount` 與政府電子採購網來源。
 - 初始搜尋固定為空；網址附加 `?q=綜合任務` 仍顯示全部資料。
-- 超過兩小時顯示「資料可能過期」。
+- 超過兩小時顯示「資料可能過期」（若擷取時間為六日則顯示「週末例行暫停同步（下一版：週一 00:00）」）。
 - 重新整理只請求同源 JSON；瀏覽器沒有 `/api/tenders` 或 PCC 資料請求。
 - 外部 PCC 連結具有 `noopener noreferrer`。
 - 1440×1000 與 390×844 均無水平溢位，axe serious／critical 為零。

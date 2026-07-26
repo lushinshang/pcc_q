@@ -108,14 +108,26 @@ describe("REQ-F-001/002/003 dashboard behavior", () => {
     expect(screen.getByText("2／2 筆")).toBeInTheDocument();
   });
 
-  it("APP-T-003 marks data older than two hours as stale", async () => {
-    mockedLoad.mockResolvedValue(
-      fixtureDataset(new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()),
+  it("APP-T-003 marks data older than two hours as stale and handles weekend text", async () => {
+    // 平日 (週三) 過期
+    mockedLoad.mockResolvedValueOnce(
+      fixtureDataset("2026-07-22T08:00:00.000Z"),
+    );
+    const { unmount } = render(<App />);
+
+    expect(await screen.findByTestId("freshness")).toHaveTextContent(
+      "資料可能過期",
+    );
+    unmount();
+
+    // 週末 (週六) 過期
+    mockedLoad.mockResolvedValueOnce(
+      fixtureDataset("2026-07-25T12:00:00.000Z"),
     );
     render(<App />);
 
     expect(await screen.findByTestId("freshness")).toHaveTextContent(
-      "資料可能過期",
+      "週末例行暫停同步（下一版：週一 00:00）",
     );
   });
 

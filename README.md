@@ -133,22 +133,22 @@ Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 
 
 #### 14 項 Live Production 實體驗收對照表
 
-| 驗收項目                       | 驗收規範細節                                                                    | Live 測試結果 | 證據 / 數據                                           |
-| :----------------------------- | :------------------------------------------------------------------------------ | :------------ | :---------------------------------------------------- |
-| **靜態資產載入**               | HTML、JS、CSS 及 `data/tenders.json` 回應 200 OK                                | **通過**      | 無 HTTP 錯誤或 Mixed content                          |
-| **Base Path 正確性**           | Project Pages 資產載入路徑前綴為 `/pcc_q/`                                      | **通過**      | `dist` 靜態路徑完美對齊                               |
-| **真實標案資料**               | 成功呈現 30 天滾動累積資料集（包含正確 `fetchedAt` 與 `recordCount`）           | **通過**      | 累積 `recordCount: 15892` 筆，SHA-256 驗證比對一致    |
-| **查詢模式驗證**               | 例行查詢 `queryMode` 為 `isNow`；首次回填為 `isDate`                            | **通過**      | 正確顯示「當日公告 (isNow)」狀態                      |
-| **預設篩選與網址搜尋**         | 預設機關＝國防部、日期範圍＝一週；網址包含 `?q=綜合任務` 仍安全顯示預設篩選結果 | **通過**      | 實測顯示「234／15892 筆」，搜尋條件正確解耦與獨立     |
-| **排序**                       | 標案列表依公告日期由新到舊排序                                                  | **通過**      | Playwright DOM 檢查最新公告日期排在最前               |
-| **新鮮度控管**                 | 資料在 2 小時新鮮度內顯示綠色新鮮標誌；超過 2 小時提示警示                      | **通過**      | 顯示「資料在兩小時新鮮度內」                          |
-| **同源請求限制**               | 頁面重新載入與點擊重新載入僅發出同源 `data/tenders.json` 請求                   | **通過**      | 網路監聽 0 筆 `/api/tenders` 或 `web.pcc.gov.tw` 請求 |
-| **外部連結安全**               | 點擊標案開啟政府採購網連結均具備 `rel="noopener noreferrer"`                    | **通過**      | Playwright DOM 檢查 100% 符合                         |
-| **無障礙規範 (a11y)**          | 符合 WCAG / axe-core 規範                                                       | **通過**      | axe-core 檢測 serious / critical 違規數為 0           |
-| **跨裝置響應式與無溢位**       | 桌機 1440×1000 與手機 390×844 Viewport 均零水平溢位                             | **通過**      | Playwright E2E 檢測 `scrollWidth == clientWidth` 通過 |
-| **CSP 安全政策**               | 依據 Content-Security-Policy meta 規則運作                                      | **通過**      | Console 0 筆 CSP violation 違規警告                   |
-| **Production Artifact 乾淨度** | Pages Artifact 僅含 `dist` 內容                                                 | **通過**      | 4 個建置檔案，無 Source Map / Fixture / `.env` / 秘密 |
-| **維護手冊同步**               | 驗收結果已完整同步至 `docs/specs/001-pages-migration/runbook.md`                | **通過**      | Runbook 已完成即時紀錄                                |
+| 驗收項目                       | 驗收規範細節                                                                                                                   | Live 測試結果 | 證據 / 數據                                                    |
+| :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :------------ | :------------------------------------------------------------- |
+| **靜態資產載入**               | HTML、JS、CSS 及 `data/tenders.json` 回應 200 OK                                                                               | **通過**      | 無 HTTP 錯誤或 Mixed content                                   |
+| **Base Path 正確性**           | Project Pages 資產載入路徑前綴為 `/pcc_q/`                                                                                     | **通過**      | `dist` 靜態路徑完美對齊                                        |
+| **真實標案資料**               | 成功呈現 30 天滾動累積資料集（包含正確 `fetchedAt` 與 `recordCount`）                                                          | **通過**      | 累積 `recordCount: 15892` 筆，SHA-256 驗證比對一致             |
+| **查詢模式驗證**               | 例行查詢 `queryMode` 為 `isNow`；首次回填為 `isDate`                                                                           | **通過**      | 正確顯示「當日公告 (isNow)」狀態                               |
+| **預設篩選與網址搜尋**         | 預設機關＝國防部、日期範圍＝一週；網址包含 `?q=綜合任務` 仍安全顯示預設篩選結果                                                | **通過**      | 實測顯示「234／15892 筆」，搜尋條件正確解耦與獨立              |
+| **排序**                       | 標案列表依公告日期由新到舊排序                                                                                                 | **通過**      | Playwright DOM 檢查最新公告日期排在最前                        |
+| **新鮮度控管**                 | 資料在 2 小時新鮮度內顯示綠色新鮮標誌；超過 2 小時提示警示（若擷取時間為六日，顯示「週末例行暫停同步（下一版：週一 00:00）」） | **通過**      | 顯示「資料在兩小時新鮮度內」／週末正確提示「週末例行暫停同步」 |
+| **同源請求限制**               | 頁面重新載入與點擊重新載入僅發出同源 `data/tenders.json` 請求                                                                  | **通過**      | 網路監聽 0 筆 `/api/tenders` 或 `web.pcc.gov.tw` 請求          |
+| **外部連結安全**               | 點擊標案開啟政府採購網連結均具備 `rel="noopener noreferrer"`                                                                   | **通過**      | Playwright DOM 檢查 100% 符合                                  |
+| **無障礙規範 (a11y)**          | 符合 WCAG / axe-core 規範                                                                                                      | **通過**      | axe-core 檢測 serious / critical 違規數為 0                    |
+| **跨裝置響應式與無溢位**       | 桌機 1440×1000 與手機 390×844 Viewport 均零水平溢位                                                                            | **通過**      | Playwright E2E 檢測 `scrollWidth == clientWidth` 通過          |
+| **CSP 安全政策**               | 依據 Content-Security-Policy meta 規則運作                                                                                     | **通過**      | Console 0 筆 CSP violation 違規警告                            |
+| **Production Artifact 乾淨度** | Pages Artifact 僅含 `dist` 內容                                                                                                | **通過**      | 4 個建置檔案，無 Source Map / Fixture / `.env` / 秘密          |
+| **維護手冊同步**               | 驗收結果已完整同步至 `docs/specs/001-pages-migration/runbook.md`                                                               | **通過**      | Runbook 已完成即時紀錄                                         |
 
 ### 4. 紅隊資安複查與改善紀錄（OPERATION LEDGERWATCH）
 

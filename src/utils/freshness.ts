@@ -14,3 +14,13 @@ export function getDatasetFreshness(
   const ageMs = Math.max(0, nowMs - fetchedAtMs);
   return { ageMs, isStale: ageMs > STALE_AFTER_MS };
 }
+
+export function isTaipeiWeekend(fetchedAt: string): boolean {
+  const dateMs = Date.parse(fetchedAt);
+  if (!Number.isFinite(dateMs)) return false;
+  const dayOfWeek = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Taipei",
+    weekday: "short",
+  }).format(new Date(dateMs));
+  return dayOfWeek === "Sat" || dayOfWeek === "Sun";
+}
