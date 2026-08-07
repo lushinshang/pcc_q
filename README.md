@@ -96,6 +96,11 @@ flowchart TD
 
 Repository 的 Pages Source 必須設為 **GitHub Actions**。部署 environment 固定為 `github-pages`，建議在 GitHub 設定 environment protection rules。CI、dependency review、CodeQL 與 Dependabot 設定均位於 `.github/`；所有 Actions 均鎖定已核對的完整 commit SHA。
 
+`build` job 的最後一道關卡 `npm audit --audit-level=high` 會在任何間接依賴被通報 high／moderate 漏洞時讓整個 job fail closed，deploy 不會執行——這是刻意設計，但也代表新漏洞一冒出來、下一次排程就會立刻卡住部署（見下方「維運事故紀錄」）。為了不必每次都靠人工發現才處理，另外兩個獨立 workflow 負責把這個關卡的維護自動化：
+
+- `.github/workflows/dependency-audit-fix.yml`：平日／假日皆排程於每天 `Asia/Taipei` 01:00 執行 `npm audit fix`，若產生 lockfile 變更就重跑一次完整 `npm run validate`，驗證過才直接 commit／push 到 `main`；最後固定再跑一次 `npm audit --audit-level=high`，就算這次沒東西可自動修但仍有殘留漏洞，也會讓 job 失敗以通知，不悄悄放行。
+- `.github/workflows/dependabot-auto-merge.yml`：偵測到 Dependabot 開出的 PR 時，用 `gh pr checks --watch --fail-fast` 明確等既有 CI、CodeQL、Dependency review 全部跑完且通過，才 squash-merge 並刪分支；不依賴 repository 的 auto-merge 設定或 branch protection（目前皆未啟用），避免「沒有 required checks 時可能不等 CI 就先合併」的邊界情況。
+
 Project Pages 預設使用 `/<repository>/`。若使用自訂網域、使用者 Pages 或其他根路徑部署，將 repository variable `PAGES_BASE_PATH` 設為 `/`；也可設為經驗證的同源目錄路徑（例如 `/portal/`）。完整 URL、`..` 與 protocol-relative 值會在 build 時被拒絕。
 
 ### 交接給負責上傳的 AI
@@ -165,6 +170,17 @@ Production 上線後另做了一輪獨立紅隊視角複查，找到三項違反
 完整的 Red/Green 逐步記錄、沙箱環境例外處理（actionlint／Gitleaks 離線驗證、Playwright 權限問題等）與工程教訓，見 [runbook「最近驗證」](docs/specs/001-pages-migration/runbook.md#最近驗證)。
 
 **尚待人工確認**：RT-002／RT-003 涉及擷取管線邏輯，需在有 GitHub 與 PCC 網路權限的真實環境手動執行一次 `data-and-pages` 的 `workflow_dispatch`，驗證真實擷取及 production deployment。這次本機工作沒有執行該步驟，也不能以 deterministic tests 取代它。
+
+### 5. Pages 停止更新事故與自動修復機制（2026-08-07）
+
+`data-and-pages.yml` 的排程從 2026-08-05 起連續失敗，卡在 `build` job 最後一道 `npm audit --audit-level=high` 關卡，deploy 完全沒有機會執行，Pages 因此停在舊版本超過一天未更新。
+
+| 項目     | 內容                                                                                                                                                                                                                                                                                                                                      |
+| :------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 根因     | 四個間接依賴（`brace-expansion`、`fast-uri`、`postcss`、`undici`）新被通報 high／moderate 漏洞；Dependabot 已自動開 PR，但那些 PR 的 CI 也撞上同一道關卡而失敗，沒有自動合併，問題持續累積無人處理                                                                                                                                        |
+| 修復     | `npm audit fix`（未加 `--force`，只更新 lockfile 內間接依賴版本），重跑完整 `npm run validate` 確認未破壞既有功能，`npm audit` 確認歸零後 commit（`e803132`）                                                                                                                                                                             |
+| 附帶發現 | 獨立的 `ci.yml`（品質把關用，不參與部署）同一次 push 也失敗：`E2E-T-004` 因已 commit 的 `public/data/tenders.json` 樣本 `announcedDate` 寫死在最後一次更新當天，main 隔超過一週沒 push 就會被「一週」篩選篩成 0 筆而假陽性失敗；修法是在 `ci.yml` 加一步 `npm run data:sample` 於建置前重新產生今天日期的樣本（`ac89e02`），不回寫 commit |
+| 預防     | 新增 `dependency-audit-fix.yml`（每天自動 `npm audit fix` 並驗證後直接 commit）與 `dependabot-auto-merge.yml`（Dependabot PR 全部 CI 過後自動合併），詳見「GitHub Pages 部署」一節（`2f25c4d`）                                                                                                                                           |
 
 ## 故障處理
 
