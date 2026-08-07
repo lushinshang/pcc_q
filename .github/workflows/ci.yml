@@ -34,6 +34,12 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      # 已 commit 的 public/data/tenders.json 是本機開發用的固定樣本，announcedDate
+      # 寫死在最後一次更新當天；main 隔了幾天沒 push，E2E-T-004 的預設「一週」篩選
+      # 就會篩出 0 筆而假陽性失敗。CI 用得到今天日期，改成每次都重新產生樣本資料，
+      # 不依賴 commit 當下的日期，也不回寫這個檔案。
+      - name: Generate sample dataset dated today
+        run: npm run data:sample
       - name: Formatting
         run: npm run format
       - name: Lint
