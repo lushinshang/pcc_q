@@ -21,7 +21,7 @@
     "security:repo": "node --import tsx scripts/security/scan-repository.ts",
     "security:history": "go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --no-banner --redact --verbose .",
     "security:workflows": "vitest run tests/security/workflows.test.ts",
-    "workflow:lint": "go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml .github/workflows/codeql.yml .github/workflows/data-and-pages.yml",
+    "workflow:lint": "go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml .github/workflows/codeql.yml .github/workflows/data-and-pages.yml .github/workflows/dependency-audit-fix.yml .github/workflows/dependabot-auto-merge.yml",
     "validate:html": "html-validate dist/index.html",
     "validate:code": "npm run format && npm run lint && npm run typecheck && npm run test:coverage",
     "validate": "npm run validate:code && npm run security:repo && npm run security:workflows && npm run workflow:lint && npm run build && npm run validate:html && npm run security:dist"

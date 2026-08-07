@@ -1,0 +1,27 @@
+name: Merge Dependabot pull requests once checks pass
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  merge:
+    name: Wait for CI then merge
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      # 不依賴 repository 的 auto-merge 設定或 branch protection：
+      # 明確等所有 check 完成且全過，再自己執行合併，避免「沒有 required checks
+      # 時 auto-merge 可能不等 CI 就先合併」的邊界情況。
+      - name: Wait for all checks to pass
+        run: gh pr checks "$PR_URL" --watch --fail-fast
+      - name: Squash-merge and delete branch
+        run: gh pr merge "$PR_URL" --squash --delete-branch
